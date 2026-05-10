@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moonlight Tracker</title>
+<meta name="application-name" content="Moonlight Tracker">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Moonlight">
+<meta name="theme-color" content="#0A0E1A">
+<meta name="description" content="Track your Python study progress with friends">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --moon:#F5E6C8;--moon-glow:#FFD97D;--deep:#0A0E1A;--surface:#1A2235;--surface2:#1E2A3D;
+  --accent:#7C9FD4;--accent2:#A78BCA;--text:#E8EAED;--muted:#8896B3;--green:#5DCEA7;
+  --streak:#FF9F43;--border:rgba(124,159,212,0.15);--danger:#E57373;
+  --gold:#FFD700;--silver:#C0C0C0;--bronze:#CD7F32
+}
+body{background:var(--deep);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden}
+.stars-bg{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d,3s) ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.2;transform:scale(1)}50%{opacity:1;transform:scale(1.4)}}
+.app{position:relative;z-index:1;max-width:800px;margin:0 auto;padding:16px}
+.screen{display:none;animation:fadeIn .35s ease}
+.screen.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ===== LOGIN ===== */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{background:rgba(26,34,53,0.97);border:1px solid rgba(255,217,125,0.2);border-radius:28px;padding:38px;width:100%;max-width:410px;text-align:center}
+.moon-big{width:88px;height:88px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFF8E7,#F5E6C8 45%,#D4A850 80%,#B8860B);box-shadow:0 0 28px rgba(255,217,125,.5),0 0 56px rgba(255,217,125,.18);margin:0 auto 18px;position:relative;overflow:hidden}
+.moon-big::after{content:'';position:absolute;width:21px;height:21px;border-radius:50%;background:rgba(180,120,20,.3);top:14px;left:23px}
+.moon-big::before{content:'';position:absolute;width:11px;height:11px;border-radius:50%;background:rgba(180,120,20,.25);top:39px;left:11px}
+.login-title{font-family:'Cinzel',serif;font-size:26px;font-weight:700;background:linear-gradient(135deg,var(--moon-glow),var(--moon));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+.invite-notice{background:rgba(255,217,125,.07);border:1px solid rgba(255,217,125,.25);border-radius:13px;padding:12px 15px;margin-bottom:18px;text-align:left}
+.invite-notice-title{font-size:12px;color:var(--moon-glow);font-weight:700;margin-bottom:3px}
+.invite-notice-text{font-size:12px;color:var(--muted)}
+.tab-row{display:flex;background:var(--surface2);border-radius:11px;padding:4px;margin-bottom:18px;gap:4px}
+.tab{flex:1;padding:8px;border-radius:8px;border:none;background:transparent;color:var(--muted);font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:.2s}
+.tab.active{background:rgba(124,159,212,.2);color:var(--accent)}
+.fgrp{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.fld{background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px 15px;color:var(--text);font-family:'Nunito',sans-serif;font-size:13px;width:100%;transition:border .2s}
+.fld:focus{outline:none;border-color:rgba(124,159,212,.5)}
+.fld::placeholder{color:var(--muted)}
+.login-btn{width:100%;background:linear-gradient(135deg,rgba(124,159,212,.35),rgba(167,139,202,.35));border:1px solid rgba(167,139,202,.4);border-radius:13px;padding:13px;color:var(--moon);font-size:14px;font-weight:700;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px;transition:.2s}
+.login-btn:hover{background:linear-gradient(135deg,rgba(124,159,212,.55),rgba(167,139,202,.55))}
+.login-note{font-size:11px;color:var(--muted);margin-top:10px}
+.av-pick{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-bottom:14px}
+.av-opt{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer;border:2px solid transparent;background:var(--surface2);transition:.2s}
+.av-opt.sel,.av-opt:hover{border-color:var(--accent)}
+.fl{font-size:11px;color:var(--muted);text-align:left;margin-bottom:5px}
+
+/* ===== HEADER ===== */
+.header{display:flex;align-items:center;gap:13px;padding:15px 19px;background:linear-gradient(135deg,rgba(26,34,53,.97),rgba(30,42,61,.92));border:1px solid var(--border);border-radius:18px;margin-bottom:13px}
+.moon-sm{width:48px;height:48px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFF8E7,#F5E6C8 45%,#D4A850 80%,#B8860B);box-shadow:0 0 13px rgba(255,217,125,.4);flex-shrink:0;position:relative;overflow:hidden}
+.moon-sm::after{content:'';position:absolute;width:13px;height:13px;border-radius:50%;background:rgba(180,120,20,.3);top:9px;left:15px}
+.app-title{font-family:'Cinzel',serif;font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--moon-glow),var(--moon));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.app-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:7px}
+.user-pill{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:18px;padding:5px 10px 5px 5px}
+.user-av{width:25px;height:25px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;background:rgba(124,159,212,.15)}
+.user-name-pill{font-size:12px;font-weight:600}
+.logout-btn{background:none;border:none;color:var(--muted);font-size:10px;cursor:pointer;font-family:'Nunito',sans-serif}
+.notif-btn{background:rgba(124,159,212,.1);border:1px solid var(--border);border-radius:9px;padding:6px 10px;color:var(--accent);font-size:14px;cursor:pointer}
+
+/* ===== NAV ===== */
+.nav{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:5px;gap:3px;margin-bottom:13px}
+.nav-btn{flex:1;padding:7px 4px;border-radius:9px;border:none;background:transparent;color:var(--muted);font-family:'Nunito',sans-serif;font-size:10px;font-weight:600;cursor:pointer;transition:.2s;display:flex;flex-direction:column;align-items:center;gap:2px}
+.nav-btn.active{background:rgba(124,159,212,.15);color:var(--accent)}
+.nav-btn span{font-size:16px}
+
+/* ===== STATS ===== */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:13px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:12px;text-align:center}
+.stat-num{font-family:'Cinzel',serif;font-size:22px;font-weight:700;color:var(--moon-glow)}
+.stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.stat-icon{font-size:16px;margin-bottom:3px}
+
+/* ===== PET ===== */
+.pet-section{background:var(--surface);border:1px solid var(--border);border-radius:17px;padding:15px;margin-bottom:13px;display:flex;align-items:center;gap:14px}
+.pet-wrap{position:relative;flex-shrink:0}
+.pet{width:66px;height:66px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:37px;background:radial-gradient(circle,rgba(124,159,212,.1),rgba(10,14,26,0));border:2px solid rgba(124,159,212,.2);animation:petFloat 3s ease-in-out infinite}
+@keyframes petFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.pet-badge{position:absolute;bottom:-2px;right:-2px;background:var(--streak);border-radius:8px;font-size:9px;font-weight:700;padding:2px 6px;color:#fff}
+.pet-info h3{font-family:'Cinzel',serif;font-size:13px;color:var(--moon-glow);margin-bottom:4px}
+.pet-info p{font-size:11px;color:var(--muted);line-height:1.5}
+.pet-select{display:flex;gap:5px;margin-top:7px}
+.pet-opt{width:28px;height:28px;border-radius:50%;background:var(--surface2);border:2px solid transparent;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
+.pet-opt.active,.pet-opt:hover{border-color:var(--accent)}
+
+/* ===== TOPIC TOGGLE ===== */
+.topic-section{background:var(--surface);border:1px solid var(--border);border-radius:17px;padding:15px;margin-bottom:13px}
+.topic-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sec-title{font-family:'Cinzel',serif;font-size:13px;color:var(--moon);display:flex;align-items:center;gap:6px}
+.topic-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.topic-chip{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-size:12px;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:7px;font-family:'Nunito',sans-serif;font-weight:600;color:var(--muted)}
+.topic-chip:hover{border-color:rgba(124,159,212,.4);color:var(--text)}
+.topic-chip.active{background:rgba(124,159,212,.12);border-color:rgba(124,159,212,.45);color:var(--accent)}
+.topic-chip .dot{width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0;transition:.2s}
+.topic-chip.active .dot{background:var(--accent)}
+.topic-add-row{display:flex;gap:7px;margin-top:10px}
+.topic-add-inp{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:8px 12px;color:var(--text);font-family:'Nunito',sans-serif;font-size:12px}
+.topic-add-inp:focus{outline:none;border-color:rgba(124,159,212,.5)}
+.topic-add-inp::placeholder{color:var(--muted)}
+.topic-add-btn{background:rgba(124,159,212,.15);border:1px solid rgba(124,159,212,.3);border-radius:9px;padding:8px 14px;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;transition:.2s}
+.topic-add-btn:hover{background:rgba(124,159,212,.28)}
+.current-topics{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.topic-badge{background:rgba(124,159,212,.12);border:1px solid rgba(124,159,212,.3);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--accent);display:flex;align-items:center;gap:5px;font-weight:600}
+.topic-badge button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;line-height:1;padding:0}
+
+/* ===== CHALLENGE SHARE ===== */
+.chal-section{background:var(--surface);border:1px solid var(--border);border-radius:17px;padding:15px;margin-bottom:13px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.toggle{position:relative;width:40px;height:22px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0}
+.sl{position:absolute;inset:0;background:rgba(255,255,255,.1);border-radius:11px;transition:.3s}
+.sl:before{content:'';position:absolute;width:16px;height:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+input:checked+.sl{background:var(--accent)}
+input:checked+.sl:before{transform:translateX(18px)}
+.chal-inp{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text);font-family:'Nunito',sans-serif;font-size:13px;resize:none;min-height:65px;transition:border .2s;margin-bottom:8px}
+.chal-inp:focus{outline:none;border-color:rgba(124,159,212,.5)}
+.snap-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.snap-btn{background:rgba(124,159,212,.1);border:1px dashed rgba(124,159,212,.3);border-radius:8px;padding:7px 12px;color:var(--accent);font-size:12px;cursor:pointer;font-family:'Nunito',sans-serif;display:flex;align-items:center;gap:4px;transition:.2s}
+.snap-btn:hover{background:rgba(124,159,212,.2)}
+.share-btn-main{background:linear-gradient(135deg,rgba(124,159,212,.3),rgba(167,139,202,.3));border:1px solid rgba(167,139,202,.3);border-radius:8px;padding:7px 15px;color:var(--moon);font-size:12px;font-weight:600;cursor:pointer;font-family:'Nunito',sans-serif;transition:.2s;margin-left:auto}
+.share-btn-main:hover{background:linear-gradient(135deg,rgba(124,159,212,.5),rgba(167,139,202,.5))}
+.prev-img{width:100%;border-radius:9px;margin-bottom:7px;max-height:140px;object-fit:cover;display:none}
+#fileInput{display:none}
+
+/* ===== FEED ===== */
+.feed-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px;margin-bottom:7px}
+.feed-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.feed-text{font-size:12px;color:var(--text);line-height:1.6}
+.feed-time{font-size:10px;color:var(--muted);margin-top:4px}
+.feed-tag{font-size:10px;background:rgba(93,206,167,.14);color:var(--green);border-radius:6px;padding:2px 6px;font-weight:600}
+.feed-topic-tag{font-size:10px;background:rgba(124,159,212,.12);color:var(--accent);border-radius:6px;padding:2px 6px;font-weight:600}
+.feed-empty{font-size:12px;color:var(--muted);padding:12px 0;text-align:center}
+
+/* ===== FRIENDS ===== */
+.friends-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:13px}
+.friend-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;transition:.2s;position:relative}
+.friend-card:hover{border-color:rgba(124,159,212,.4);transform:translateY(-2px)}
+.friend-top{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+.friend-name{font-weight:700;font-size:13px}
+.friend-streak-badge{font-size:10px;color:var(--streak);margin-top:2px;font-weight:600}
+.friend-topics{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.friend-topic-pill{font-size:10px;background:rgba(124,159,212,.1);border:1px solid rgba(124,159,212,.2);border-radius:12px;padding:2px 7px;color:var(--accent)}
+.progress-bar{height:4px;background:rgba(255,255,255,.07);border-radius:10px;overflow:hidden;margin-bottom:5px}
+.progress-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s}
+.friend-stats-row{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
+.remove-f{position:absolute;top:7px;right:7px;background:rgba(229,115,115,.1);border:none;border-radius:5px;color:var(--danger);font-size:10px;cursor:pointer;padding:2px 5px;font-family:'Nunito',sans-serif;opacity:0;transition:.2s}
+.friend-card:hover .remove-f{opacity:1}
+.pending-badge{position:absolute;top:7px;left:10px;font-size:9px;background:rgba(255,159,67,.12);color:var(--streak);border-radius:5px;padding:2px 5px;font-weight:700}
+
+/* ===== FRIEND STREAK DETAIL ===== */
+.friend-streak-section{background:var(--surface);border:1px solid var(--border);border-radius:17px;padding:15px;margin-bottom:13px}
+.streak-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.streak-row{background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px 14px;display:flex;align-items:center;gap:12px}
+.streak-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.streak-info{flex:1}
+.streak-name{font-size:12px;font-weight:700}
+.streak-topics{font-size:10px;color:var(--muted);margin-top:2px}
+.streak-count{font-family:'Cinzel',serif;font-size:18px;font-weight:700;color:var(--streak)}
+.streak-label{font-size:9px;color:var(--muted);text-align:center}
+.no-friends-msg{font-size:12px;color:var(--muted);text-align:center;padding:16px 0}
+
+/* ===== ADD FRIEND / INVITE ===== */
+.add-panel{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:20px;margin-bottom:14px}
+.add-panel-title{font-family:'Cinzel',serif;font-size:15px;color:var(--moon);margin-bottom:4px}
+.add-panel-sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+.add-fields{display:flex;flex-direction:column;gap:9px;margin-bottom:12px}
+.add-row{display:flex;gap:7px}
+.add-fld{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-family:'Nunito',sans-serif;font-size:13px}
+.add-fld:focus{outline:none;border-color:rgba(124,159,212,.5)}
+.add-fld::placeholder{color:var(--muted)}
+.col-label{font-size:11px;color:var(--muted);margin-bottom:5px}
+.color-opts{display:flex;gap:7px}
+.color-opt{width:25px;height:25px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:.2s;flex-shrink:0}
+.color-opt.sel{border-color:#fff;transform:scale(1.2)}
+.gen-btn{width:100%;background:linear-gradient(135deg,rgba(255,217,125,.18),rgba(167,139,202,.18));border:1px solid rgba(255,217,125,.3);border-radius:11px;padding:11px;color:var(--moon-glow);font-size:13px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;transition:.2s;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:10px}
+.gen-btn:hover{background:linear-gradient(135deg,rgba(255,217,125,.3),rgba(167,139,202,.3))}
+.invite-result{background:var(--surface2);border:1px solid rgba(255,217,125,.22);border-radius:15px;padding:16px;margin-top:12px;display:none;animation:fadeIn .3s ease}
+.invite-result-head{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+.invite-result-icon{font-size:26px}
+.invite-result-title{font-family:'Cinzel',serif;font-size:13px;color:var(--moon-glow)}
+.invite-result-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.link-box{display:flex;gap:7px;align-items:stretch;margin-bottom:10px}
+.link-text{flex:1;background:rgba(10,14,26,.6);border:1px solid rgba(124,159,212,.2);border-radius:9px;padding:9px 11px;font-size:11px;color:var(--accent);font-family:'Courier New',monospace;word-break:break-all;line-height:1.5}
+.copy-btn{background:rgba(124,159,212,.15);border:1px solid rgba(124,159,212,.3);border-radius:9px;padding:9px 13px;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap;flex-shrink:0;transition:.2s}
+.copy-btn:hover{background:rgba(124,159,212,.28)}
+.copy-btn.ok{background:rgba(93,206,167,.15);border-color:rgba(93,206,167,.35);color:var(--green)}
+.share-methods{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.smethod{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 11px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Nunito',sans-serif;transition:.2s;display:flex;align-items:center;gap:4px}
+.smethod:hover{border-color:rgba(124,159,212,.4);background:rgba(124,159,212,.07)}
+.smethod.wa{color:#25D366}.smethod.em{color:var(--accent)}.smethod.tw{color:#1DA1F2}
+.qr-wrap{display:flex;align-items:center;gap:12px;border-top:1px solid var(--border);padding-top:12px}
+.qr-canvas{border-radius:7px;background:#fff;padding:5px;flex-shrink:0}
+.qr-note{font-size:11px;color:var(--muted);line-height:1.6}
+.flash{font-size:12px;color:var(--green);margin-top:6px;min-height:16px;text-align:center}
+
+/* ===== LEADERBOARD ===== */
+.lb-hd{background:linear-gradient(135deg,rgba(255,215,0,.07),rgba(167,139,202,.07));border:1px solid rgba(255,215,0,.15);border-radius:17px;padding:17px;margin-bottom:13px;text-align:center}
+.lb-title{font-family:'Cinzel',serif;font-size:18px;color:var(--moon-glow);margin-bottom:3px}
+.lb-sub{font-size:11px;color:var(--muted)}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:9px;margin:16px 0 20px}
+.p-slot{display:flex;flex-direction:column;align-items:center;gap:5px}
+.p-av{border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid transparent;position:relative}
+.p-av.gold{border-color:var(--gold);box-shadow:0 0 13px rgba(255,215,0,.3)}
+.p-av.silver{border-color:var(--silver)}
+.p-av.bronze{border-color:var(--bronze)}
+.crown{position:absolute;top:-15px;font-size:15px}
+.p-name{font-size:11px;font-weight:700;text-align:center}
+.p-pts{font-size:10px;color:var(--muted)}
+.p-bar{border-radius:6px 6px 0 0;width:62px;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;font-size:16px}
+.lb-filter{display:flex;gap:6px;margin-bottom:11px;flex-wrap:wrap}
+.lb-fb{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:6px 12px;color:var(--muted);font-size:11px;cursor:pointer;font-family:'Nunito',sans-serif;transition:.2s;font-weight:600}
+.lb-fb.active{background:rgba(124,159,212,.15);color:var(--accent);border-color:rgba(124,159,212,.3)}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 14px;display:flex;align-items:center;gap:11px}
+.lb-row.me{border-color:rgba(255,217,125,.3);background:rgba(255,217,125,.04)}
+.lb-rank{font-family:'Cinzel',serif;font-size:14px;font-weight:700;width:20px;text-align:center;flex-shrink:0}
+.lb-info{flex:1}
+.lb-name{font-size:12px;font-weight:600}
+.lb-detail{font-size:10px;color:var(--muted);margin-top:2px}
+.lb-score{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:var(--moon-glow)}
+.lb-you{font-size:9px;padding:2px 6px;border-radius:6px;font-weight:600;margin-left:5px;background:rgba(255,217,125,.12);color:var(--moon-glow)}
+
+/* ===== CHAT ===== */
+.chat-wrap{background:var(--surface);border:1px solid var(--border);border-radius:17px;padding:16px}
+.chat-msgs{max-height:260px;overflow-y:auto;margin-bottom:9px;display:flex;flex-direction:column;gap:8px}
+.chat-msgs::-webkit-scrollbar{width:3px}
+.chat-msgs::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.msg{padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.6;max-width:84%}
+.msg.bot{background:var(--surface2);color:var(--text);border-bottom-left-radius:3px;align-self:flex-start}
+.msg.user{background:linear-gradient(135deg,rgba(124,159,212,.2),rgba(167,139,202,.2));border:1px solid rgba(124,159,212,.18);border-bottom-right-radius:3px;align-self:flex-end}
+.chat-row{display:flex;gap:7px}
+.chat-inp{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 12px;color:var(--text);font-family:'Nunito',sans-serif;font-size:13px}
+.chat-inp:focus{outline:none;border-color:rgba(124,159,212,.5)}
+.chat-send{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;padding:9px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'Nunito',sans-serif}
+.t-ind{display:none;font-size:11px;color:var(--muted);padding:2px 0}
+.t-ind.show{display:block}
+
+/* ===== POPUP ===== */
+.popup{position:fixed;top:18px;right:18px;background:var(--surface);border:1px solid rgba(255,217,125,.3);border-radius:16px;padding:14px 18px;max-width:270px;z-index:9999;transform:translateX(310px);transition:transform .4s cubic-bezier(.34,1.56,.64,1);box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.popup.show{transform:translateX(0)}
+.popup-head{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.popup-title{font-family:'Cinzel',serif;font-size:12px;color:var(--moon-glow)}
+.popup-text{font-size:11px;color:var(--muted);line-height:1.5}
+.popup-close{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px}
+
+/* ===== UTILITIES ===== */
+.mb13{margin-bottom:13px}
+</style>
+</head>
+<body>
+<div class="stars-bg" id="stars"></div>
+
+<!-- ===== LOGIN ===== -->
+<div class="screen active" id="loginScreen">
+<div class="login-wrap"><div class="login-card">
+  <div class="moon-big"></div>
+  <div class="login-title">Moonlight Tracker</div>
+  <div class="login-sub">Study together, shine brighter ✦</div>
+  <div class="invite-notice" id="inviteNotice" style="display:none">
+    <div class="invite-notice-title">🌙 You've been invited!</div>
+    <div class="invite-notice-text" id="inviteNoticeText">Your friend invited you to join their Moonlight study crew. Sign up to get started!</div>
+  </div>
+  <div class="tab-row">
+    <button class="tab active" onclick="showTab('in')">Sign In</button>
+    <button class="tab" onclick="showTab('up')">Sign Up</button>
+  </div>
+  <div id="signinForm">
+    <div class="fgrp">
+      <input class="fld" id="siU" type="text" placeholder="Email or username">
+      <input class="fld" id="siP" type="password" placeholder="Password">
+    </div>
+    <button class="login-btn" onclick="doLogin()">✦ Enter the Night ✦</button>
+    <p class="login-note">Demo: type anything and press enter</p>
+  </div>
+  <div id="signupForm" style="display:none">
+    <div class="fgrp">
+      <input class="fld" id="suN" type="text" placeholder="Your name">
+      <input class="fld" id="suE" type="email" placeholder="Email">
+      <input class="fld" id="suP" type="password" placeholder="Create password">
+    </div>
+    <div class="fl">Choose your avatar</div>
+    <div class="av-pick">
+      <div class="av-opt sel" onclick="pickAv(this,'🌙')">🌙</div>
+      <div class="av-opt" onclick="pickAv(this,'⭐')">⭐</div>
+      <div class="av-opt" onclick="pickAv(this,'🔮')">🔮</div>
+      <div class="av-opt" onclick="pickAv(this,'🦋')">🦋</div>
+      <div class="av-opt" onclick="pickAv(this,'🌸')">🌸</div>
+      <div class="av-opt" onclick="pickAv(this,'🚀')">🚀</div>
+    </div>
+    <button class="login-btn" onclick="doSignup()">✦ Join the Crew ✦</button>
+  </div>
+</div></div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div class="screen" id="mainScreen">
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="moon-sm"></div>
+    <div>
+      <div class="app-title">Moonlight Tracker</div>
+      <div class="app-sub">Study together, shine brighter ✦</div>
+    </div>
+    <div class="hdr-right">
+      <button class="notif-btn" onclick="showNotif()">🔔</button>
+      <div class="user-pill">
+        <div class="user-av" id="hAv">🌙</div>
+        <span class="user-name-pill" id="hName">You</span>
+        <button class="logout-btn" onclick="logout()">sign out</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav">
+    <button class="nav-btn active" onclick="showPage('home',this)"><span>🏠</span>Home</button>
+    <button class="nav-btn" onclick="showPage('friends',this)"><span>👥</span>Friends</button>
+    <button class="nav-btn" onclick="showPage('streaks',this)"><span>🔥</span>Streaks</button>
+    <button class="nav-btn" onclick="showPage('leaderboard',this)"><span>🏆</span>Board</button>
+    <button class="nav-btn" onclick="showPage('chat',this)"><span>🤖</span>AI Help</button>
+  </div>
+
+  <!-- ===== HOME PAGE ===== -->
+  <div id="page-home">
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-icon">🌙</div><div class="stat-num" id="daysTog">0</div><div class="stat-label">Days Together</div></div>
+      <div class="stat-card"><div class="stat-icon">🔥</div><div class="stat-num" id="streakNum">0</div><div class="stat-label">My Streak</div></div>
+      <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-num" id="solvedNum">0</div><div class="stat-label">Solved</div></div>
+    </div>
+
+    <!-- Streak Pet -->
+    <div class="pet-section">
+      <div class="pet-wrap"><div class="pet" id="petEl">🦉</div><div class="pet-badge" id="petLvl">Lv.1</div></div>
+      <div class="pet-info">
+        <h3 id="petName">Cosmo the Owl</h3>
+        <p id="petMsg">Your midnight companion! Start studying to level up Cosmo!</p>
+        <div class="pet-select">
+          <div class="pet-opt active" onclick="setPet(this,'🦉','Cosmo the Owl','Your midnight study companion!')">🦉</div>
+          <div class="pet-opt" onclick="setPet(this,'🐱','Luna the Cat','A night cat who loves Python loops!')">🐱</div>
+          <div class="pet-opt" onclick="setPet(this,'🐉','Pydragon','Fueled by Python knowledge!')">🐉</div>
+          <div class="pet-opt" onclick="setPet(this,'🐺','CodeWolf','Howls when you solve a challenge!')">🐺</div>
+          <div class="pet-opt" onclick="setPet(this,'🦊','Bitfox','Sniffs out logical errors!')">🦊</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Topic Toggle -->
+    <div class="topic-section">
+      <div class="topic-header">
+        <div class="sec-title">📚 Today's Topics</div>
+        <label class="toggle"><input type="checkbox" id="topicToggle" onchange="toggleTopicPanel(this)"><span class="sl"></span></label>
+      </div>
+      <div id="topicPanel" style="display:none">
+        <div class="topic-grid" id="topicGrid"></div>
+        <div class="topic-add-row">
+          <input class="topic-add-inp" id="topicAddInp" placeholder="Add custom topic...">
+          <button class="topic-add-btn" onclick="addCustomTopic()">+ Add</button>
+        </div>
+        <div class="current-topics" id="currentTopics"></div>
+      </div>
+      <div id="topicOff" style="font-size:12px;color:var(--muted)">Toggle on to set what you're studying today.</div>
+    </div>
+
+    <!-- Challenge Share -->
+    <div class="chal-section">
+      <div class="toggle-row">
+        <div class="sec-title" style="margin-bottom:0">✦ Share Today's Challenge</div>
+        <label class="toggle"><input type="checkbox" id="shareToggle" onchange="toggleShare(this)"><span class="sl"></span></label>
+      </div>
+      <div id="sharePanel" style="display:none">
+        <img id="prevImg" class="prev-img" alt="snap">
+        <textarea class="chal-inp" id="chalTxt" placeholder="What Python challenge did you tackle today?..."></textarea>
+        <div class="snap-row">
+          <button class="snap-btn" onclick="document.getElementById('fileInput').click()">📷 Snap Problem</button>
+          <input type="file" id="fileInput" accept="image/*" onchange="prevSnap(this)">
+          <button class="share-btn-main" onclick="shareChallenge()">Share with crew →</button>
+        </div>
+      </div>
+      <div id="shareOff" style="font-size:12px;color:var(--muted)">Toggle on to share your daily challenge.</div>
+    </div>
+
+    <!-- Feed -->
+    <div class="sec-title mb13">✦ Crew Updates</div>
+    <div id="feed">
+      <div class="feed-empty" id="feedEmpty">No updates yet — share your first challenge above! 🌙</div>
+    </div>
+  </div>
+
+  <!-- ===== FRIENDS PAGE ===== -->
+  <div id="page-friends" style="display:none">
+    <!-- Invite Panel -->
+    <div class="add-panel">
+      <div class="add-panel-title">✦ Invite a Study Companion</div>
+      <div class="add-panel-sub">Generate a personal invite link — your friend clicks it and lands straight on the sign-up page, ready to join your crew.</div>
+      <div class="add-fields">
+        <div class="add-row">
+          <input class="add-fld" id="newName" placeholder="Friend's name (required)">
+          <input class="add-fld" id="newEmoji" placeholder="Emoji (optional)" style="max-width:120px">
+        </div>
+        <div class="col-label">Pick a card colour</div>
+        <div class="color-opts">
+          <div class="color-opt sel" style="background:rgba(124,159,212,.75)" data-c="rgba(124,159,212,.2)" data-t="#7C9FD4" onclick="pickCol(this)"></div>
+          <div class="color-opt" style="background:rgba(167,139,202,.75)" data-c="rgba(167,139,202,.2)" data-t="#A78BCA" onclick="pickCol(this)"></div>
+          <div class="color-opt" style="background:rgba(93,206,167,.75)" data-c="rgba(93,206,167,.2)" data-t="#5DCEA7" onclick="pickCol(this)"></div>
+          <div class="color-opt" style="background:rgba(255,159,67,.75)" data-c="rgba(255,159,67,.2)" data-t="#FF9F43" onclick="pickCol(this)"></div>
+          <div class="color-opt" style="background:rgba(229,115,115,.75)" data-c="rgba(229,115,115,.2)" data-t="#E57373" onclick="pickCol(this)"></div>
+          <div class="color-opt" style="background:rgba(255,217,125,.75)" data-c="rgba(255,217,125,.2)" data-t="#FFD97D" onclick="pickCol(this)"></div>
+        </div>
+      </div>
+      <button class="gen-btn" onclick="generateInvite()">🔗 Generate Invite Link</button>
+      <div class="flash" id="addFlash"></div>
+
+      <div class="invite-result" id="inviteResult">
+        <div class="invite-result-head">
+          <div class="invite-result-icon">🌙</div>
+          <div>
+            <div class="invite-result-title">Invite link ready!</div>
+            <div class="invite-result-sub">Share with <strong id="invForName">your friend</strong></div>
+          </div>
+        </div>
+        <div class="link-box">
+          <div class="link-text" id="linkDisplay"></div>
+          <button class="copy-btn" id="copyBtn" onclick="copyLink()">Copy</button>
+        </div>
+        <div class="share-methods">
+          <button class="smethod wa" onclick="shareVia('wa')">💬 WhatsApp</button>
+          <button class="smethod em" onclick="shareVia('email')">✉️ Email</button>
+          <button class="smethod tw" onclick="shareVia('tw')">𝕏 Twitter</button>
+          <button class="smethod" style="color:var(--muted)" onclick="shareVia('more')">↗ More</button>
+        </div>
+        <div class="qr-wrap">
+          <canvas class="qr-canvas" id="qrCanvas" width="68" height="68"></canvas>
+          <div class="qr-note">Your friend can also scan this QR code to join instantly. ✨</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Crew list -->
+    <div class="sec-title mb13">✦ Your Crew (<span id="crewCount">0</span>)</div>
+    <div class="friends-grid" id="friendsGrid">
+      <div style="font-size:12px;color:var(--muted);padding:8px 0">No crew members yet — send your first invite above! 🌙</div>
+    </div>
+  </div>
+
+  <!-- ===== STREAKS PAGE ===== -->
+  <div id="page-streaks" style="display:none">
+    <div class="friend-streak-section">
+      <div class="sec-title">🔥 Individual Streaks</div>
+      <div class="sec-title" style="font-size:11px;color:var(--muted);font-family:'Nunito',sans-serif;margin-top:4px;font-weight:400">Each friend's personal study streak & topics</div>
+      <div class="streak-list" id="streakList">
+        <div class="no-friends-msg">Add friends to see their streaks here 🌙</div>
+      </div>
+    </div>
+
+    <!-- My streak card -->
+    <div class="friend-streak-section">
+      <div class="sec-title">🌙 My Progress</div>
+      <div class="streak-list">
+        <div class="streak-row">
+          <div class="streak-av" id="myStreakAv" style="background:rgba(255,217,125,.15);color:#FFD97D">🌙</div>
+          <div class="streak-info">
+            <div class="streak-name" id="myStreakName">You</div>
+            <div class="streak-topics" id="myStreakTopics">No topics selected yet</div>
+          </div>
+          <div>
+            <div class="streak-count" id="myStreakCount">0</div>
+            <div class="streak-label">day streak</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LEADERBOARD PAGE ===== -->
+  <div id="page-leaderboard" style="display:none">
+    <div class="lb-hd">
+      <div class="lb-title">🏆 Moonlight Leaderboard</div>
+      <div class="lb-sub">Your crew's rankings — updated as you study</div>
+    </div>
+    <div class="lb-filter">
+      <button class="lb-fb active" onclick="setLbF('streak',this)">🔥 Streak</button>
+      <button class="lb-fb" onclick="setLbF('solved',this)">⭐ Solved</button>
+      <button class="lb-fb" onclick="setLbF('topics',this)">📚 Topics</button>
+    </div>
+    <div id="podiumWrap"></div>
+    <div class="lb-list" id="lbList"></div>
+  </div>
+
+  <!-- ===== CHAT PAGE ===== -->
+  <div id="page-chat" style="display:none">
+    <div class="chat-wrap">
+      <div class="sec-title" style="margin-bottom:10px">✦ Moonlight AI — Python Helper</div>
+      <div class="chat-msgs" id="chatMsgs">
+        <div class="msg bot">Hey! I'm your Moonlight Python companion 🌙 Ask me anything — syntax, debugging, or concepts. What are you studying tonight?</div>
+      </div>
+      <div class="t-ind" id="tInd">Moonlight is thinking...</div>
+      <div class="chat-row">
+        <input class="chat-inp" id="chatInp" placeholder="Ask a Python question..." onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="chat-send" onclick="sendChat()">Send</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end .app -->
+</div><!-- end mainScreen -->
+
+<!-- POPUP -->
+<div class="popup" id="popup">
+  <div class="popup-head"><span style="font-size:18px">🌙</span><div class="popup-title">Time to learn!</div><button class="popup-close" onclick="closePopup()">×</button></div>
+  <div class="popup-text" id="popupText">The moon is up — keep that streak alive! ✨</div>
+</div>
+
+<script>
+/* ============================================================
+   STATE
+============================================================ */
+let me = { name: '', av: '🌙' };
+let selAv = '🌙';
+let selCol = { c: 'rgba(124,159,212,.2)', t: '#7C9FD4' };
+let lbFilter = 'streak';
+let inviteLink = '';
+let myStreak = 0;
+let myTopics = []; // active topics for today
+
+let friends = [];
+// friend shape: { name, ini, emoji, c, t, streak, prog, solved, topics:[], pending }
+
+const PYTHON_TOPICS = [
+  { emoji:'🔢', label:'Variables & Types' },
+  { emoji:'🔁', label:'Loops' },
+  { emoji:'🌿', label:'Functions' },
+  { emoji:'📋', label:'Lists & Tuples' },
+  { emoji:'🗂️', label:'Dictionaries' },
+  { emoji:'🏛️', label:'OOP / Classes' },
+  { emoji:'⚠️', label:'Error Handling' },
+  { emoji:'📂', label:'File I/O' },
+  { emoji:'🔗', label:'Modules & Packages' },
+  { emoji:'🧪', label:'Testing' },
+  { emoji:'🌐', label:'APIs / Requests' },
+  { emoji:'🗄️', label:'Databases' },
+  { emoji:'🔄', label:'Recursion' },
+  { emoji:'🎨', label:'Decorators' },
+  { emoji:'⚡', label:'Async / Await' },
+  { emoji:'📊', label:'Data Analysis' },
+];
+
+/* ============================================================
+   STARS
+============================================================ */
+const sEl = document.getElementById('stars');
+for (let i = 0; i < 85; i++) {
+  const s = document.createElement('div'); s.className = 'star';
+  const sz = Math.random() * 2.5 + .5;
+  s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${2+Math.random()*4}s;animation-delay:${Math.random()*5}s;opacity:${Math.random()*.6+.2}`;
+  sEl.appendChild(s);
+}
+
+/* ============================================================
+   CHECK INVITE ON LOAD
+============================================================ */
+window.addEventListener('load', () => {
+  const h = window.location.hash;
+  if (h && h.startsWith('#invite=')) {
+    try {
+      const d = JSON.parse(atob(h.slice(8)));
+      document.getElementById('inviteNotice').style.display = 'block';
+      document.getElementById('inviteNoticeText').textContent =
+        `${d.from} invited you to join their Moonlight study crew! Sign up to get started. 🌙`;
+      showTab('up');
+    } catch(e) {}
+  }
+  renderTopicGrid();
+});
+
+/* ============================================================
+   LOGIN
+============================================================ */
+function showTab(t) {
+  document.querySelectorAll('.tab').forEach((el, i) => el.classList.toggle('active', i === (t==='in'?0:1)));
+  document.getElementById('signinForm').style.display = t==='in' ? 'block' : 'none';
+  document.getElementById('signupForm').style.display = t==='up' ? 'block' : 'none';
+}
+function pickAv(el, av) {
+  document.querySelectorAll('.av-opt').forEach(o => o.classList.remove('sel'));
+  el.classList.add('sel'); selAv = av;
+}
+function doLogin() {
+  const n = document.getElementById('siU').value.trim() || 'Moonchaser';
+  me = { name: n.split('@')[0] || n, av: '🌙' }; launch();
+}
+function doSignup() {
+  const n = document.getElementById('suN').value.trim() || 'Moonchaser';
+  me = { name: n, av: selAv }; launch();
+}
+function launch() {
+  document.getElementById('hName').textContent = me.name;
+  document.getElementById('hAv').textContent = me.av;
+  document.getElementById('myStreakAv').textContent = me.av;
+  document.getElementById('myStreakName').textContent = me.name;
+  document.getElementById('loginScreen').classList.remove('active');
+  document.getElementById('mainScreen').classList.add('active');
+  renderFriends(); renderStreaks(); renderLb();
+  setTimeout(showNotif, 2000);
+}
+function logout() {
+  document.getElementById('mainScreen').classList.remove('active');
+  document.getElementById('loginScreen').classList.add('active');
+  showPage('home', null);
+  document.querySelectorAll('.nav-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+}
+
+/* ============================================================
+   NAV
+============================================================ */
+function showPage(p, btn) {
+  ['home','friends','streaks','leaderboard','chat'].forEach(id => {
+    const el = document.getElementById('page-'+id);
+    if (el) el.style.display = id===p ? 'block' : 'none';
+  });
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (p==='leaderboard') renderLb();
+  if (p==='streaks') renderStreaks();
+}
+
+/* ============================================================
+   TOPICS
+============================================================ */
+function renderTopicGrid() {
+  const grid = document.getElementById('topicGrid');
+  grid.innerHTML = '';
+  PYTHON_TOPICS.forEach(t => {
+    const chip = document.createElement('div');
+    chip.className = 'topic-chip' + (myTopics.includes(t.label) ? ' active' : '');
+    chip.innerHTML = `<div class="dot"></div><span>${t.emoji} ${t.label}</span>`;
+    chip.onclick = () => toggleTopic(t.label, chip);
+    grid.appendChild(chip);
+  });
+}
+function toggleTopicPanel(el) {
+  document.getElementById('topicPanel').style.display = el.checked ? 'block' : 'none';
+  document.getElementById('topicOff').style.display = el.checked ? 'none' : 'block';
+}
+function toggleTopic(label, chip) {
+  if (myTopics.includes(label)) {
+    myTopics = myTopics.filter(t => t !== label);
+    chip.classList.remove('active');
+  } else {
+    myTopics.push(label);
+    chip.classList.add('active');
+  }
+  renderCurrentTopics();
+  renderStreaks();
+  updateStreakTopicsDisplay();
+}
+function addCustomTopic() {
+  const inp = document.getElementById('topicAddInp');
+  const val = inp.value.trim();
+  if (!val) return;
+  if (!myTopics.includes(val)) { myTopics.push(val); }
+  if (!PYTHON_TOPICS.find(t => t.label === val)) {
+    PYTHON_TOPICS.push({ emoji:'📌', label: val });
+    renderTopicGrid();
+  }
+  inp.value = '';
+  renderCurrentTopics(); renderStreaks(); updateStreakTopicsDisplay();
+}
+function renderCurrentTopics() {
+  const el = document.getElementById('currentTopics');
+  if (myTopics.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = myTopics.map(t =>
+    `<div class="topic-badge">${t}<button onclick="removeTopic('${t}')">×</button></div>`
+  ).join('');
+}
+function removeTopic(label) {
+  myTopics = myTopics.filter(t => t !== label);
+  renderTopicGrid(); renderCurrentTopics(); renderStreaks(); updateStreakTopicsDisplay();
+}
+function updateStreakTopicsDisplay() {
+  const el = document.getElementById('myStreakTopics');
+  el.textContent = myTopics.length ? myTopics.join(', ') : 'No topics selected yet';
+}
+
+/* ============================================================
+   CHALLENGE SHARE
+============================================================ */
+function toggleShare(el) {
+  document.getElementById('sharePanel').style.display = el.checked ? 'block' : 'none';
+  document.getElementById('shareOff').style.display = el.checked ? 'none' : 'block';
+}
+function prevSnap(input) {
+  if (!input.files[0]) return;
+  const img = document.getElementById('prevImg');
+  img.src = URL.createObjectURL(input.files[0]); img.style.display = 'block';
+}
+function shareChallenge() {
+  const txt = document.getElementById('chalTxt').value.trim();
+  if (!txt) { alert('Write your challenge first!'); return; }
+  const snapped = document.getElementById('prevImg').style.display === 'block';
+  const topicTag = myTopics.length ? `<span class="feed-topic-tag">📚 ${myTopics[0]}</span>` : '';
+  const item = document.createElement('div'); item.className = 'feed-item';
+  item.innerHTML = `
+    <div class="feed-top">
+      <div class="avatar" style="background:rgba(255,217,125,.2);color:#FFD97D;width:26px;height:26px;font-size:11px">${me.av}</div>
+      <div style="font-size:12px;font-weight:600">${me.name} (you)</div>
+      <span class="feed-tag">Challenge</span>
+      ${topicTag}
+      ${snapped ? '<span class="feed-tag" style="background:rgba(124,159,212,.14);color:var(--accent)">📷</span>' : ''}
+    </div>
+    <div class="feed-text">${txt}</div>
+    <div class="feed-time">Just now</div>`;
+  const feed = document.getElementById('feed');
+  const empty = document.getElementById('feedEmpty');
+  if (empty) empty.style.display = 'none';
+  feed.insertBefore(item, feed.firstChild);
+  document.getElementById('chalTxt').value = '';
+  document.getElementById('prevImg').style.display = 'none';
+  // Update streak & solved
+  myStreak++;
+  const sc = document.getElementById('solvedNum'); sc.textContent = parseInt(sc.textContent) + 1;
+  document.getElementById('streakNum').textContent = myStreak;
+  document.getElementById('myStreakCount').textContent = myStreak;
+  document.getElementById('petLvl').textContent = 'Lv.' + Math.max(1, myStreak);
+}
+
+/* ============================================================
+   FRIENDS
+============================================================ */
+function renderFriends() {
+  const grid = document.getElementById('friendsGrid');
+  document.getElementById('crewCount').textContent = friends.length;
+  if (friends.length === 0) {
+    grid.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0">No crew members yet — send your first invite above! 🌙</div>';
+    return;
+  }
+  grid.innerHTML = '';
+  friends.forEach((f, i) => {
+    const d = f.emoji || f.ini;
+    const topicPills = (f.topics||[]).map(t => `<div class="friend-topic-pill">${t}</div>`).join('');
+    const card = document.createElement('div'); card.className = 'friend-card';
+    card.innerHTML = `
+      ${f.pending ? '<div class="pending-badge">⏳ pending</div>' : ''}
+      <button class="remove-f" onclick="removeFriend(${i},event)">✕</button>
+      <div class="friend-top">
+        <div class="avatar" style="background:${f.c};color:${f.t}">${d}</div>
+        <div>
+          <div class="friend-name">${f.name}</div>
+          <div class="friend-streak-badge">${f.pending ? 'Awaiting sign-up…' : '🔥 ' + f.streak + '-day streak'}</div>
+        </div>
+      </div>
+      ${topicPills.length ? `<div class="friend-topics">${topicPills}</div>` : ''}
+      <div class="progress-bar"><div class="progress-fill" style="width:${f.prog}%"></div></div>
+      <div class="friend-stats-row"><span>Progress: ${f.prog}%</span><span>🏆 ${f.solved} solved</span></div>`;
+    grid.appendChild(card);
+  });
+}
+function removeFriend(i, e) {
+  e.stopPropagation(); friends.splice(i, 1);
+  renderFriends(); renderStreaks(); renderLb();
+}
+function pickCol(el) {
+  document.querySelectorAll('.color-opt').forEach(o => o.classList.remove('sel'));
+  el.classList.add('sel'); selCol = { c: el.dataset.c, t: el.dataset.t };
+}
+
+/* ============================================================
+   STREAKS PAGE
+============================================================ */
+function renderStreaks() {
+  const list = document.getElementById('streakList');
+  // Update my streak row
+  document.getElementById('myStreakAv').textContent = me.av;
+  document.getElementById('myStreakName').textContent = me.name || 'You';
+  document.getElementById('myStreakCount').textContent = myStreak;
+  updateStreakTopicsDisplay();
+
+  const active = friends.filter(f => !f.pending);
+  if (active.length === 0) {
+    list.innerHTML = '<div class="no-friends-msg">Add friends to see their streaks here 🌙</div>';
+    return;
+  }
+  list.innerHTML = '';
+  // Sort by streak descending
+  [...active].sort((a,b) => b.streak - a.streak).forEach(f => {
+    const d = f.emoji || f.ini;
+    const topicStr = (f.topics||[]).length ? f.topics.join(', ') : 'No topics yet';
+    const row = document.createElement('div'); row.className = 'streak-row';
+    row.innerHTML = `
+      <div class="streak-av" style="background:${f.c};color:${f.t}">${d}</div>
+      <div class="streak-info">
+        <div class="streak-name">${f.name}</div>
+        <div class="streak-topics">📚 ${topicStr}</div>
+      </div>
+      <div>
+        <div class="streak-count">${f.streak}</div>
+        <div class="streak-label">day streak</div>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+
+/* ============================================================
+   INVITE LINK
+============================================================ */
+function generateInvite() {
+  const name = document.getElementById('newName').value.trim();
+  if (!name) { flash("Enter your friend's name first!", 'var(--danger)'); return; }
+  const payload = { from: me.name || 'A Moonlight user', friendName: name, c: selCol.c, t: selCol.t, ts: Date.now() };
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  const base = window.location.href.split('#')[0].split('?')[0];
+  inviteLink = `${base}#invite=${encoded}`;
+  document.getElementById('inviteResult').style.display = 'block';
+  document.getElementById('invForName').textContent = name;
+  document.getElementById('linkDisplay').textContent = inviteLink;
+  document.getElementById('copyBtn').textContent = 'Copy';
+  document.getElementById('copyBtn').classList.remove('ok');
+  drawQR(inviteLink);
+  if (!friends.some(f => f.name.toLowerCase() === name.toLowerCase())) {
+    const ini = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const emoji = document.getElementById('newEmoji').value.trim();
+    friends.push({ name, ini, emoji, c: selCol.c, t: selCol.t, streak: 0, prog: 0, solved: 0, topics: [], pending: true });
+    renderFriends(); renderStreaks(); renderLb();
+  }
+  flash(`✓ Invite created for ${name}! Share the link below.`, 'var(--green)');
+}
+function copyLink() {
+  const link = document.getElementById('linkDisplay').textContent;
+  const btn = document.getElementById('copyBtn');
+  const done = () => { btn.textContent='✓ Copied!'; btn.classList.add('ok'); setTimeout(()=>{ btn.textContent='Copy'; btn.classList.remove('ok'); }, 2500); };
+  if (navigator.clipboard) navigator.clipboard.writeText(link).then(done);
+  else { const ta=document.createElement('textarea'); ta.value=link; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done(); }
+}
+function shareVia(m) {
+  const msg = encodeURIComponent(`${me.name||'A friend'} invited you to Moonlight Tracker — a Python study tracker! Click to join the crew: ${inviteLink}`);
+  if (m==='wa') window.open(`https://wa.me/?text=${msg}`,'_blank');
+  else if (m==='email') window.open(`mailto:?subject=Join me on Moonlight Tracker!&body=${decodeURIComponent(msg)}`);
+  else if (m==='tw') window.open(`https://twitter.com/intent/tweet?text=${msg}`,'_blank');
+  else if (m==='more'&&navigator.share) navigator.share({title:'Moonlight Tracker Invite',url:inviteLink}).catch(()=>{});
+  else copyLink();
+}
+function flash(msg, col='var(--green)') {
+  const el=document.getElementById('addFlash'); el.style.color=col; el.textContent=msg;
+  setTimeout(()=>el.textContent='', 4000);
+}
+
+/* ============================================================
+   MINI QR
+============================================================ */
+function drawQR(text) {
+  const c=document.getElementById('qrCanvas'), ctx=c.getContext('2d');
+  const sz=68,cell=4,cols=Math.floor(sz/cell);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,sz,sz);
+  let seed=0; for(let i=0;i<text.length;i++) seed=(seed*31+text.charCodeAt(i))&0xffffffff;
+  function rand(){ seed=(seed*1664525+1013904223)&0xffffffff; return(seed>>>0)/0xffffffff; }
+  ctx.fillStyle='#0A0E1A';
+  [[0,0],[cols-7,0],[0,cols-7]].forEach(([cx,cy])=>{
+    ctx.fillRect(cx*cell,cy*cell,7*cell,7*cell);
+    ctx.fillStyle='#fff'; ctx.fillRect((cx+1)*cell,(cy+1)*cell,5*cell,5*cell);
+    ctx.fillStyle='#0A0E1A'; ctx.fillRect((cx+2)*cell,(cy+2)*cell,3*cell,3*cell);
+  });
+  ctx.fillStyle='#0A0E1A';
+  for(let r=0;r<cols;r++) for(let c2=0;c2<cols;c2++){
+    const inF=(r<8&&c2<8)||(r<8&&c2>cols-9)||(r>cols-9&&c2<8);
+    if(!inF&&rand()>.5) ctx.fillRect(c2*cell,r*cell,cell,cell);
+  }
+}
+
+/* ============================================================
+   LEADERBOARD
+============================================================ */
+function lbData() {
+  const myEntry = { name:me.name||'You', av:me.av, isMe:true, streak:myStreak, solved:parseInt(document.getElementById('solvedNum').textContent)||0, topics:myTopics.length, c:'rgba(255,217,125,.2)', t:'#FFD97D' };
+  const active = friends.filter(f=>!f.pending).map(f=>({ name:f.name, av:f.emoji||f.ini, isMe:false, streak:f.streak, solved:f.solved, topics:(f.topics||[]).length, c:f.c, t:f.t }));
+  const key = lbFilter==='solved'?'solved':lbFilter==='topics'?'topics':'streak';
+  return [myEntry,...active].sort((a,b)=>b[key]-a[key]);
+}
+function renderLb() {
+  const data = lbData();
+  const key = lbFilter==='solved'?'solved':lbFilter==='topics'?'topics':'streak';
+  const unit = lbFilter==='solved'?'solved':lbFilter==='topics'?'topics':'day streak';
+  const medals=['🥇','🥈','🥉'], pCls=['gold','silver','bronze'], pCol=['var(--gold)','var(--silver)','var(--bronze)'];
+  const top=data.slice(0,Math.min(3,data.length));
+  const ord=top.length===3?[top[1],top[0],top[2]]:top;
+  const ranks=top.length===3?[2,1,3]:[1,2,3];
+  const hs=top.length===3?[68,98,52]:[98,68,52];
+  let ph='<div class="podium">';
+  ord.forEach((p,i)=>{
+    const dv=/\p{Emoji}/u.test(p.av[0])&&p.av.length<=2?p.av:p.av.slice(0,2);
+    const r=ranks[i]-1;
+    ph+=`<div class="p-slot"><div style="position:relative">${r===0?'<div class="crown">👑</div>':''}<div class="p-av ${pCls[r]}" style="width:${r===0?52:42}px;height:${r===0?52:42}px;background:${p.c};color:${p.t};font-size:${r===0?21:16}px">${dv}</div></div><div class="p-name">${p.name.split(' ')[0]}${p.isMe?' (me)':''}</div><div class="p-pts">${p[key]} ${unit}</div><div class="p-bar" style="height:${hs[i]}px;background:${pCol[r]}20;border:1px solid ${pCol[r]}40;color:${pCol[r]}">${ranks[i]}</div></div>`;
+  });
+  ph+='</div>';
+  document.getElementById('podiumWrap').innerHTML=ph;
+  let lh='';
+  data.forEach((p,i)=>{
+    const dv=/\p{Emoji}/u.test(p.av[0])&&p.av.length<=2?p.av:p.av.slice(0,2);
+    lh+=`<div class="lb-row${p.isMe?' me':''}"><div class="lb-rank" style="color:${i<3?pCol[i]:'var(--muted)'}">${i<3?medals[i]:i+1}</div><div class="avatar" style="background:${p.c};color:${p.t};width:30px;height:30px;font-size:11px">${dv}</div><div class="lb-info"><div class="lb-name">${p.name}${p.isMe?'<span class="lb-you">you</span>':''}</div><div class="lb-detail">🔥${p.streak} streak · ⭐${p.solved} solved · 📚${p.topics} topics</div></div><div class="lb-score">${p[key]}</div></div>`;
+  });
+  document.getElementById('lbList').innerHTML=lh;
+}
+function setLbF(f,btn){ lbFilter=f; document.querySelectorAll('.lb-fb').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderLb(); }
+
+/* ============================================================
+   PET
+============================================================ */
+function setPet(el,e,n,m){
+  document.querySelectorAll('.pet-opt').forEach(o=>o.classList.remove('active')); el.classList.add('active');
+  document.getElementById('petEl').textContent=e;
+  document.getElementById('petName').textContent=n;
+  document.getElementById('petMsg').textContent=m;
+}
+
+/* ============================================================
+   AI CHATBOT
+============================================================ */
+async function sendChat() {
+  const inp=document.getElementById('chatInp'), val=inp.value.trim(); if(!val)return;
+  inp.value='';
+  const msgs=document.getElementById('chatMsgs');
+  const um=document.createElement('div'); um.className='msg user'; um.textContent=val; msgs.appendChild(um); msgs.scrollTop=msgs.scrollHeight;
+  const ti=document.getElementById('tInd'); ti.classList.add('show');
+  const topicContext = myTopics.length ? `The user is currently studying: ${myTopics.join(', ')}.` : '';
+  try {
+    const res=await fetch('/api/chat',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000,
+        system:`You are Moonlight AI, a friendly Python tutor for Moonlight Tracker. ${topicContext} Answer Python questions clearly and encouragingly. Be concise. Warm, supportive tone with occasional moon/night references.`,
+        messages:[{role:'user',content:val}]
+      })
+    });
+    const data=await res.json();
+    const reply=data.content?.find(b=>b.type==='text')?.text||'Stars cloudy — try again! 🌙';
+    ti.classList.remove('show');
+    const bm=document.createElement('div'); bm.className='msg bot'; bm.textContent=reply;
+    msgs.appendChild(bm); msgs.scrollTop=msgs.scrollHeight;
+  } catch(e) {
+    ti.classList.remove('show');
+    const bm=document.createElement('div'); bm.className='msg bot'; bm.textContent='Connection flickered! Try again 🌙';
+    msgs.appendChild(bm); msgs.scrollTop=msgs.scrollHeight;
+  }
+}
+
+/* ============================================================
+   NOTIFICATIONS
+============================================================ */
+const reminders=[
+  'The moon is up! Keep that streak alive. ✨',
+  'Cosmo says: 15 minutes of Python today counts! 🦉',
+  'Consistency beats intensity. One concept counts ⭐',
+  'Your study crew misses you! Share what you learned 🔥',
+  'Have you set your topics for today? Let the crew know! 📚'
+];
+let popIdx=0;
+function showNotif(){ document.getElementById('popupText').textContent=reminders[popIdx++%reminders.length]; document.getElementById('popup').classList.add('show'); setTimeout(closePopup,6000); }
+function closePopup(){ document.getElementById('popup').classList.remove('show'); }
+
+/* ============================================================
+   SERVICE WORKER + INSTALL PROMPT
+============================================================ */
+if('serviceWorker'in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js')
+      .then(r=>console.log('SW registered:',r.scope))
+      .catch(e=>console.log('SW failed:',e));
+  });
+}
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault(); deferredPrompt=e;
+  setTimeout(()=>{ if(document.getElementById('loginScreen').classList.contains('active')) showInstallBanner(); },3000);
+});
+function showInstallBanner(){
+  if(!deferredPrompt)return;
+  const banner=document.createElement('div'); banner.id='installBanner';
+  banner.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1A2235;border:1px solid rgba(255,217,125,0.3);border-radius:16px;padding:14px 18px;z-index:99999;display:flex;align-items:center;gap:12px;box-shadow:0 8px 30px rgba(0,0,0,0.5);font-family:Nunito,sans-serif;max-width:320px;width:90%;animation:fadeIn .4s ease;';
+  banner.innerHTML=`<span style="font-size:26px">🌙</span><div style="flex:1"><div style="font-family:Cinzel,serif;font-size:13px;color:#FFD97D;margin-bottom:3px">Install Moonlight</div><div style="font-size:11px;color:#8896B3">Add to home screen for the best experience</div></div><div style="display:flex;flex-direction:column;gap:6px"><button onclick="installApp()" style="background:linear-gradient(135deg,rgba(124,159,212,.4),rgba(167,139,202,.4));border:1px solid rgba(167,139,202,.4);border-radius:9px;padding:6px 12px;color:#F5E6C8;font-size:11px;font-weight:700;cursor:pointer;font-family:Nunito,sans-serif">Install</button><button onclick="document.getElementById('installBanner').remove()" style="background:none;border:none;color:#8896B3;font-size:11px;cursor:pointer;font-family:Nunito,sans-serif">Not now</button></div>`;
+  document.body.appendChild(banner);
+}
+async function installApp(){
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  const{outcome}=await deferredPrompt.userChoice;
+  deferredPrompt=null;
+  const b=document.getElementById('installBanner'); if(b)b.remove();
+}
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone=window.matchMedia('(display-mode: standalone)').matches;
+if(isIOS&&!isStandalone){
+  setTimeout(()=>{
+    const b=document.createElement('div');
+    b.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1A2235;border:1px solid rgba(255,217,125,0.3);border-radius:16px;padding:14px 18px;z-index:99999;font-family:Nunito,sans-serif;max-width:300px;width:90%;box-shadow:0 8px 30px rgba(0,0,0,.5);text-align:center;animation:fadeIn .4s ease;';
+    b.innerHTML=`<div style="font-family:Cinzel,serif;font-size:13px;color:#FFD97D;margin-bottom:6px">🌙 Install Moonlight</div><div style="font-size:11px;color:#8896B3;line-height:1.6">Tap <strong style="color:#7C9FD4">Share</strong> then <strong style="color:#7C9FD4">"Add to Home Screen"</strong> to install on your iPhone.</div><button onclick="this.parentElement.remove()" style="margin-top:10px;background:none;border:1px solid rgba(124,159,212,.3);border-radius:8px;padding:5px 14px;color:#8896B3;font-size:11px;cursor:pointer;font-family:Nunito,sans-serif">Got it</button>`;
+    document.body.appendChild(b);
+  },3500);
+}
+</script>
+</body>
+</html>
