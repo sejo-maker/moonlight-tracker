@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#080810"/>
+<title>Moonlight — Study Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
+<style>
+/* ══════════════════════════════════════════
+   DESIGN TOKENS
+══════════════════════════════════════════ */
+:root {
+  /* Obsidian dark palette */
+  --bg-void:       #080810;
+  --bg-base:       #0e0e1a;
+  --bg-raised:     #14141f;
+  --bg-float:      #1a1a2a;
+  --bg-hover:      #202030;
+  --bg-active:     #252540;
+
+  /* Glass */
+  --glass-bg:      rgba(255,255,255,0.04);
+  --glass-border:  rgba(255,255,255,0.08);
+  --glass-shadow:  0 8px 32px rgba(0,0,0,0.4);
+
+  /* Ink & Text */
+  --ink-primary:   #f0f0ff;
+  --ink-secondary: #9090b0;
+  --ink-tertiary:  #5a5a80;
+  --ink-ghost:     #3a3a55;
+
+  /* Accent — violet aurora */
+  --violet:        #7c6ffa;
+  --violet-light:  #a89cf8;
+  --violet-dim:    rgba(124,111,250,0.15);
+  --violet-glow:   rgba(124,111,250,0.3);
+
+  /* Semantic */
+  --emerald:       #34d399;
+  --emerald-dim:   rgba(52,211,153,0.12);
+  --amber:         #fbbf24;
+  --amber-dim:     rgba(251,191,36,0.12);
+  --rose:          #fb7185;
+  --rose-dim:      rgba(251,113,133,0.12);
+  --sky:           #60a5fa;
+  --sky-dim:       rgba(96,165,250,0.12);
+
+  /* Gradients */
+  --grad-violet:   linear-gradient(135deg, #7c6ffa 0%, #c084fc 100%);
+  --grad-aurora:   linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+  --grad-emerald:  linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  --grad-card:     linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+
+  /* Spacing */
+  --sp-xs: 4px; --sp-sm: 8px; --sp-md: 16px; --sp-lg: 24px;
+  --sp-xl: 32px; --sp-2xl: 48px; --sp-3xl: 64px;
+
+  /* Radii */
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px; --r-2xl: 24px; --r-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.5);
+  --shadow-violet: 0 8px 32px rgba(124,111,250,0.25);
+
+  /* Motion */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out:    cubic-bezier(0, 0, 0.2, 1);
+  --dur-fast: 150ms; --dur-med: 250ms; --dur-slow: 400ms;
+}
+
+[data-theme="light"] {
+  --bg-void: #f5f5f8; --bg-base: #ffffff; --bg-raised: #f0f0f5;
+  --bg-float: #e8e8f0; --bg-hover: #e0e0ec; --bg-active: #d8d8e8;
+  --glass-bg: rgba(0,0,0,0.03); --glass-border: rgba(0,0,0,0.08);
+  --glass-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  --ink-primary: #0a0a15; --ink-secondary: #4a4a6a;
+  --ink-tertiary: #8a8aaa; --ink-ghost: #c0c0d8;
+}
+
+/* ══════════════════════════════════════════
+   RESET & BASE
+══════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Sora', -apple-system, sans-serif;
+  background: var(--bg-void);
+  color: var(--ink-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ambient background orbs */
+body::before, body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(80px);
+  animation: orb-drift 20s ease-in-out infinite alternate;
+}
+body::before {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(124,111,250,0.08) 0%, transparent 70%);
+  top: -200px; left: -200px;
+}
+body::after {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(192,132,252,0.06) 0%, transparent 70%);
+  bottom: -150px; right: -150px;
+  animation-delay: -10s;
+}
+@keyframes orb-drift {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(40px, 30px) scale(1.1); }
+}
+
+/* ══════════════════════════════════════════
+   OVERLAYS & MODALS
+══════════════════════════════════════════ */
+.overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(8,8,16,0.85);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--sp-lg);
+  animation: fade-in var(--dur-med) var(--ease-out);
+}
+.overlay.hidden { display: none; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  background: var(--bg-raised);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-2xl);
+  padding: var(--sp-xl);
+  max-width: 420px;
+  width: 100%;
+  position: relative;
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,0.06);
+  animation: modal-enter var(--dur-slow) var(--ease-spring);
+}
+@keyframes modal-enter {
+  from { transform: translateY(24px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.modal-icon {
+  width: 52px; height: 52px;
+  background: var(--grad-aurora);
+  border-radius: var(--r-lg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+  margin: 0 auto var(--sp-md);
+  box-shadow: var(--shadow-violet);
+}
+.modal-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.5rem;
+  text-align: center;
+  margin-bottom: var(--sp-xs);
+  color: var(--ink-primary);
+  letter-spacing: -0.02em;
+}
+.modal-sub {
+  font-size: .8rem;
+  color: var(--ink-secondary);
+  text-align: center;
+  line-height: 1.65;
+  margin-bottom: var(--sp-lg);
+}
+.modal-sub a { color: var(--violet-light); text-decoration: none; border-bottom: 1px solid var(--violet-dim); transition: border-color var(--dur-fast); }
+.modal-sub a:hover { border-color: var(--violet-light); }
+
+/* Form fields */
+.field-group { margin-bottom: var(--sp-md); }
+.field-label {
+  display: block;
+  font-size: .71rem;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin-bottom: var(--sp-xs);
+}
+.field-input {
+  width: 100%;
+  background: var(--bg-float);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  padding: 11px var(--sp-md);
+  color: var(--ink-primary);
+  font-family: 'Sora', sans-serif;
+  font-size: .88rem;
+  outline: none;
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast), background var(--dur-fast);
+  -webkit-appearance: none;
+}
+.field-input:focus {
+  border-color: var(--violet);
+  box-shadow: 0 0 0 3px var(--violet-dim);
+  background: var(--bg-hover);
+}
+.field-input::placeholder { color: var(--ink-tertiary); }
+.field-input.mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: .82rem; }
+textarea.field-input { resize: vertical; min-height: 80px; line-height: 1.55; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-sm);
+  padding: 11px var(--sp-lg);
+  border-radius: var(--r-md);
+  border: none; cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  font-size: .875rem; font-weight: 600;
+  transition: all var(--dur-fast) var(--ease-smooth);
+  white-space: nowrap; width: 100%; margin-bottom: var(--sp-sm);
+  position: relative; overflow: hidden;
+}
+.btn::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0);
+  transition: background var(--dur-fast);
+}
+.btn:hover::after { background: rgba(255,255,255,0.06); }
+.btn:active { transform: scale(0.98); }
+
+.btn-primary {
+  background: var(--grad-aurora);
+  color: #fff;
+  box-shadow: var(--shadow-violet);
+}
+.btn-primary:hover { box-shadow: 0 12px 40px rgba(124,111,250,0.4); transform: translateY(-1px); }
+.btn-ghost {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--ink-secondary);
+}
+.btn-ghost:hover { color: var(--ink-primary); border-color: rgba(255,255,255,0.16); }
+.btn-sm { padding: 7px 14px; font-size: .78rem; width: auto; margin-bottom: 0; }
+.btn-danger { background: var(--rose-dim); border: 1px solid var(--rose); color: var(--rose); }
+
+.modal-divider {
+  display: flex; align-items: center; gap: var(--sp-sm);
+  margin: var(--sp-xs) 0 var(--sp-sm);
+}
+.modal-divider hr { flex: 1; border: none; border-top: 1px solid var(--glass-border); }
+.modal-divider span { font-size: .7rem; color: var(--ink-tertiary); }
+
+.modal-err {
+  font-size: .76rem; color: var(--rose);
+  background: var(--rose-dim); border: 1px solid rgba(251,113,133,0.25);
+  border-radius: var(--r-sm); padding: 8px var(--sp-md);
+  margin-bottom: var(--sp-sm); display: none;
+  animation: shake .3s ease;
+}
+.modal-err.show { display: block; }
+@keyframes shake {
+  0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}
+}
+.modal-note {
+  font-size: .7rem; color: var(--ink-tertiary); text-align: center; line-height: 1.6;
+  border-top: 1px solid var(--glass-border); padding-top: var(--sp-md); margin-top: var(--sp-sm);
+}
+.skip-link {
+  display: block; text-align: center; font-size: .75rem;
+  color: var(--ink-tertiary); margin-top: var(--sp-sm); cursor: pointer;
+  transition: color var(--dur-fast);
+}
+.skip-link:hover { color: var(--ink-secondary); }
+
+/* Badges */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: .67rem; font-weight: 700; letter-spacing: .04em;
+  padding: 3px 10px; border-radius: var(--r-full); margin-bottom: var(--sp-sm);
+}
+.badge-green { background: var(--emerald-dim); border: 1px solid rgba(52,211,153,.3); color: var(--emerald); }
+.badge-amber { background: var(--amber-dim); border: 1px solid rgba(251,191,36,.3); color: var(--amber); }
+
+/* Cookie */
+.cookie-list {
+  background: var(--bg-float); border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg); padding: var(--sp-md); margin-bottom: var(--sp-lg);
+}
+.cookie-row {
+  display: flex; align-items: flex-start; gap: var(--sp-sm);
+  padding: var(--sp-sm) 0; border-bottom: 1px solid var(--glass-border);
+}
+.cookie-row:last-child { border-bottom: none; padding-bottom: 0; }
+.cookie-row-icon { font-size: .9rem; margin-top: 1px; }
+.cookie-row-text { flex: 1; }
+.cookie-row-title { font-size: .8rem; font-weight: 600; color: var(--ink-primary); margin-bottom: 1px; }
+.cookie-row-desc { font-size: .72rem; color: var(--ink-tertiary); line-height: 1.5; }
+.cookie-btns { display: flex; gap: var(--sp-sm); }
+.btn-accept { flex: 1.4; background: var(--grad-aurora); color: #fff; padding: 10px; border-radius: var(--r-md); border: none; cursor: pointer; font-family: 'Sora',sans-serif; font-weight: 600; font-size: .85rem; transition: all var(--dur-fast); box-shadow: var(--shadow-violet); }
+.btn-accept:hover { transform: translateY(-1px); box-shadow: 0 12px 40px rgba(124,111,250,.4); }
+.btn-decline { flex: 1; background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--ink-secondary); padding: 10px; border-radius: var(--r-md); cursor: pointer; font-size: .82rem; font-family: 'Sora',sans-serif; transition: all var(--dur-fast); }
+.btn-decline:hover { border-color: var(--rose); color: var(--rose); }
+.cookie-fine { font-size: .67rem; color: var(--ink-tertiary); text-align: center; margin-top: var(--sp-sm); line-height: 1.5; }
+
+/* ══════════════════════════════════════════
+   TOP NAV
+══════════════════════════════════════════ */
+.topnav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: 56px;
+  background: rgba(8,8,16,0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--glass-border);
+  display: flex; align-items: center; padding: 0 var(--sp-xl);
+  gap: var(--sp-lg);
+}
+.nav-brand {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.1rem; color: var(--ink-primary);
+  letter-spacing: -.01em; flex-shrink: 0;
+}
+.nav-brand span { color: var(--violet-light); }
+
+/* Desktop nav links */
+.nav-links {
+  display: flex; align-items: center; gap: var(--sp-xs); flex: 1;
+  padding-left: var(--sp-lg);
+}
+.nav-link {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: var(--r-md);
+  font-size: .8rem; font-weight: 500; color: var(--ink-secondary);
+  cursor: pointer; border: none; background: transparent;
+  transition: all var(--dur-fast); white-space: nowrap;
+  font-family: 'Sora', sans-serif;
+}
+.nav-link:hover { background: var(--glass-bg); color: var(--ink-primary); }
+.nav-link.active { background: var(--violet-dim); color: var(--violet-light); font-weight: 600; }
+.nav-link .nl-icon { font-size: .9rem; }
+
+.nav-right {
+  display: flex; align-items: center; gap: var(--sp-sm); margin-left: auto;
+}
+.nav-theme-btn {
+  width: 34px; height: 34px; border-radius: var(--r-md);
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+  color: var(--ink-secondary); cursor: pointer; font-size: .9rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--dur-fast);
+}
+.nav-theme-btn:hover { color: var(--ink-primary); border-color: rgba(255,255,255,.16); }
+
+.nav-avatar-btn {
+  display: flex; align-items: center; gap: var(--sp-sm);
+  padding: 4px 12px 4px 4px;
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-full); cursor: pointer; transition: all var(--dur-fast);
+}
+.nav-avatar-btn:hover { border-color: rgba(255,255,255,.16); background: var(--bg-hover); }
+.nav-avatar { width: 28px; height: 28px; border-radius: 50%; font-size: .8rem; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; flex-shrink: 0; }
+.nav-name { font-size: .78rem; font-weight: 500; color: var(--ink-secondary); }
+
+.nav-logout-btn {
+  padding: 6px 12px; border-radius: var(--r-md);
+  background: transparent; border: 1px solid var(--glass-border);
+  color: var(--ink-tertiary); cursor: pointer; font-size: .75rem;
+  font-family: 'Sora', sans-serif; transition: all var(--dur-fast);
+}
+.nav-logout-btn:hover { border-color: var(--rose); color: var(--rose); }
+
+/* Mobile bottom nav */
+.bottom-nav {
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  background: rgba(8,8,16,0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--glass-border);
+  padding: var(--sp-sm) var(--sp-md);
+  padding-bottom: max(var(--sp-sm), env(safe-area-inset-bottom));
+  display: none; grid-template-columns: repeat(6, 1fr); gap: 4px;
+}
+.bottom-nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: var(--sp-sm) 4px; border-radius: var(--r-md);
+  cursor: pointer; border: none; background: transparent;
+  font-family: 'Sora', sans-serif; transition: all var(--dur-fast);
+}
+.bottom-nav-item .bn-icon { font-size: 1.1rem; }
+.bottom-nav-item .bn-label { font-size: .58rem; font-weight: 500; color: var(--ink-tertiary); }
+.bottom-nav-item.active .bn-label { color: var(--violet-light); }
+.bottom-nav-item.active { background: var(--violet-dim); }
+
+@media(max-width: 768px) {
+  .nav-links { display: none; }
+  .bottom-nav { display: grid; }
+  .topnav { padding: 0 var(--sp-md); }
+}
+
+/* ══════════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════════ */
+#appShell {
+  position: relative; z-index: 1;
+  padding-top: 56px;
+  padding-bottom: 80px; /* mobile bottom nav space */
+}
+.main { max-width: 900px; margin: 0 auto; padding: var(--sp-xl) var(--sp-lg); }
+@media(max-width: 600px) { .main { padding: var(--sp-lg) var(--sp-md); } }
+
+/* Pages */
+.page { display: none; animation: page-enter var(--dur-slow) var(--ease-out); }
+.page.active { display: block; }
+@keyframes page-enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+.page-header { margin-bottom: var(--sp-xl); }
+.page-eyebrow {
+  font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--violet-light); margin-bottom: var(--sp-xs);
+}
+.page-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  color: var(--ink-primary); letter-spacing: -.02em; margin-bottom: 4px;
+}
+.page-sub { font-size: .85rem; color: var(--ink-secondary); line-height: 1.6; }
+
+/* Cards */
+.card {
+  background: var(--grad-card);
+  background-color: var(--bg-raised);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  padding: var(--sp-lg);
+  margin-bottom: var(--sp-md);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+  position: relative; overflow: hidden;
+}
+.card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+}
+.card:hover { border-color: rgba(255,255,255,.12); box-shadow: var(--shadow-md); }
+.card-title {
+  font-size: .72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--ink-tertiary); margin-bottom: var(--sp-md);
+  display: flex; align-items: center; gap: var(--sp-sm);
+}
+
+/* ══════════════════════════════════════════
+   AVATAR SYSTEM
+══════════════════════════════════════════ */
+.avatar {
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; color: #fff; flex-shrink: 0;
+  position: relative; overflow: hidden;
+}
+.avatar-sm  { width: 32px; height: 32px; font-size: .8rem; }
+.avatar-md  { width: 44px; height: 44px; font-size: 1rem; }
+.avatar-lg  { width: 64px; height: 64px; font-size: 1.3rem; }
+.avatar-xl  { width: 80px; height: 80px; font-size: 1.6rem; }
+
+/* ══════════════════════════════════════════
+   DASHBOARD
+══════════════════════════════════════════ */
+.profile-hero {
+  background: var(--bg-raised);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-2xl);
+  padding: var(--sp-xl);
+  margin-bottom: var(--sp-md);
+  display: flex; align-items: center; gap: var(--sp-lg);
+  position: relative; overflow: hidden;
+}
+.profile-hero::after {
+  content: '';
+  position: absolute; right: -60px; top: -60px;
+  width: 250px; height: 250px;
+  background: radial-gradient(circle, var(--violet-dim) 0%, transparent 70%);
+  pointer-events: none;
+}
+.profile-info { flex: 1; }
+.profile-name {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.4rem; color: var(--ink-primary);
+  letter-spacing: -.02em; margin-bottom: 4px;
+}
+.profile-meta { font-size: .8rem; color: var(--ink-secondary); }
+.profile-streak {
+  display: flex; align-items: center; gap: var(--sp-sm);
+  background: linear-gradient(135deg, rgba(251,191,36,.15), rgba(251,191,36,.05));
+  border: 1px solid rgba(251,191,36,.25);
+  border-radius: var(--r-lg); padding: var(--sp-sm) var(--sp-md);
+  margin-top: var(--sp-sm);
+}
+.streak-flame { font-size: 1.1rem; }
+.streak-count { font-size: 1rem; font-weight: 700; color: var(--amber); }
+.streak-label { font-size: .72rem; color: var(--amber); opacity: .8; }
+
+/* Stats grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--sp-sm); margin-bottom: var(--sp-md);
+}
+.stat-card {
+  background: var(--bg-raised);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  padding: var(--sp-lg);
+  position: relative; overflow: hidden;
+  transition: all var(--dur-fast);
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.stat-card-accent {
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+}
+.stat-icon { font-size: 1.2rem; margin-bottom: var(--sp-sm); }
+.stat-num {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.8rem; color: var(--ink-primary);
+  letter-spacing: -.03em; line-height: 1; margin-bottom: 4px;
+}
+.stat-label { font-size: .72rem; color: var(--ink-tertiary); font-weight: 500; }
+.stat-delta { font-size: .7rem; margin-top: 4px; font-weight: 600; }
+
+/* Chart */
+.chart-container { display: flex; align-items: flex-end; gap: 6px; height: 90px; margin-top: var(--sp-sm); }
+.chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.chart-bar-wrap { flex: 1; width: 100%; display: flex; align-items: flex-end; }
+.chart-bar {
+  width: 100%; border-radius: 6px 6px 0 0; min-height: 4px;
+  transition: height .5s var(--ease-spring), opacity var(--dur-fast);
+  position: relative; overflow: hidden;
+}
+.chart-bar::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 40%;
+  background: rgba(255,255,255,0.15);
+  border-radius: inherit;
+}
+.chart-bar:hover { opacity: .85; }
+.chart-bar-label { font-size: .6rem; color: var(--ink-tertiary); font-weight: 500; }
+.chart-bar-val { font-size: .58rem; color: var(--violet-light); font-weight: 700; min-height: 10px; }
+
+/* ══════════════════════════════════════════
+   SESSION LOG
+══════════════════════════════════════════ */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-md); }
+@media(max-width: 500px) { .form-grid { grid-template-columns: 1fr; } }
+
+.session-list { display: flex; flex-direction: column; gap: var(--sp-sm); }
+.session-item {
+  background: var(--bg-raised); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); padding: var(--sp-md) var(--sp-lg);
+  display: flex; align-items: flex-start; gap: var(--sp-md);
+  transition: all var(--dur-fast); position: relative; overflow: hidden;
+}
+.session-item::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--grad-aurora); border-radius: 0 2px 2px 0;
+}
+.session-item:hover { background: var(--bg-float); border-color: rgba(255,255,255,.12); }
+.session-dot { width: 40px; height: 40px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; font-size: .9rem; flex-shrink: 0; font-weight: 700; color: #fff; }
+.session-body { flex: 1; min-width: 0; }
+.session-subject { font-size: .9rem; font-weight: 600; color: var(--ink-primary); margin-bottom: 2px; }
+.session-meta { font-size: .74rem; color: var(--ink-tertiary); line-height: 1.5; }
+.session-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: var(--sp-sm); }
+.pill {
+  font-size: .64rem; font-weight: 600; padding: 2px 9px;
+  border-radius: var(--r-full);
+}
+.pill-violet { background: var(--violet-dim); color: var(--violet-light); }
+.pill-emerald { background: var(--emerald-dim); color: var(--emerald); }
+.pill-amber { background: var(--amber-dim); color: var(--amber); }
+.pill-sky { background: var(--sky-dim); color: var(--sky); }
+.session-del {
+  background: transparent; border: none; color: var(--ink-ghost);
+  cursor: pointer; padding: 4px 6px; border-radius: var(--r-sm);
+  font-size: .85rem; transition: all var(--dur-fast); flex-shrink: 0;
+}
+.session-del:hover { color: var(--rose); background: var(--rose-dim); }
+.empty-state {
+  text-align: center; padding: var(--sp-3xl) var(--sp-xl);
+  color: var(--ink-tertiary); font-size: .85rem; line-height: 1.7;
+}
+.empty-icon { font-size: 2rem; margin-bottom: var(--sp-sm); opacity: .5; }
+
+/* ══════════════════════════════════════════
+   STREAKS
+══════════════════════════════════════════ */
+.streak-heatmap {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+  margin-top: var(--sp-sm);
+}
+.heat-cell {
+  aspect-ratio: 1; border-radius: 4px;
+  background: var(--bg-float);
+  transition: all var(--dur-fast);
+  cursor: default;
+}
+.heat-cell.level-1 { background: rgba(124,111,250,.25); }
+.heat-cell.level-2 { background: rgba(124,111,250,.5); }
+.heat-cell.level-3 { background: rgba(124,111,250,.75); }
+.heat-cell.level-4 { background: var(--violet); box-shadow: 0 0 8px var(--violet-glow); }
+.heat-cell:hover { transform: scale(1.15); }
+
+/* ══════════════════════════════════════════
+   CALENDAR
+══════════════════════════════════════════ */
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-md); }
+.cal-month { font-family: 'DM Serif Display', serif; font-size: 1.1rem; letter-spacing: -.01em; }
+.cal-nav-btn {
+  width: 32px; height: 32px; border-radius: var(--r-sm);
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+  color: var(--ink-secondary); cursor: pointer; font-size: .9rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--dur-fast);
+}
+.cal-nav-btn:hover { color: var(--ink-primary); border-color: rgba(255,255,255,.16); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-hdr { font-size: .65rem; font-weight: 700; color: var(--ink-tertiary); text-align: center; padding: var(--sp-sm) 0; text-transform: uppercase; letter-spacing: .06em; }
+.cal-day {
+  aspect-ratio: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-size: .76rem; font-weight: 500; color: var(--ink-secondary);
+  border-radius: var(--r-md); position: relative; cursor: pointer;
+  transition: all var(--dur-fast);
+}
+.cal-day:hover { background: var(--bg-hover); color: var(--ink-primary); }
+.cal-day.today { background: var(--violet-dim); color: var(--violet-light); font-weight: 700; }
+.cal-day.has-session { color: var(--emerald); }
+.cal-day.has-session::after {
+  content: ''; width: 4px; height: 4px; border-radius: 50%;
+  background: var(--emerald); position: absolute; bottom: 3px;
+}
+.cal-day.today.has-session::after { background: var(--violet-light); }
+
+/* ══════════════════════════════════════════
+   CHAT
+══════════════════════════════════════════ */
+.chat-shell { display: flex; flex-direction: column; height: calc(100vh - 220px); min-height: 400px; }
+.chat-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: var(--sp-md);
+}
+.room-tabs { display: flex; gap: var(--sp-xs); flex-wrap: wrap; }
+.room-tab {
+  padding: 6px 14px; border-radius: var(--r-full);
+  font-size: .78rem; font-weight: 500; cursor: pointer;
+  border: 1px solid var(--glass-border); background: transparent;
+  color: var(--ink-secondary); font-family: 'Sora', sans-serif;
+  transition: all var(--dur-fast);
+}
+.room-tab:hover { color: var(--ink-primary); border-color: rgba(255,255,255,.16); }
+.room-tab.active { background: var(--violet-dim); border-color: var(--violet); color: var(--violet-light); font-weight: 600; }
+.chat-messages {
+  flex: 1; overflow-y: auto; padding: var(--sp-md);
+  background: var(--bg-raised); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); margin-bottom: var(--sp-md);
+  display: flex; flex-direction: column; gap: var(--sp-sm);
+  scrollbar-width: thin; scrollbar-color: var(--glass-border) transparent;
+}
+.chat-messages::-webkit-scrollbar { width: 4px; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
+
+.msg-group { display: flex; align-items: flex-end; gap: var(--sp-sm); }
+.msg-group.mine { flex-direction: row-reverse; }
+.msg-bubble {
+  max-width: 70%; padding: 10px var(--sp-md);
+  border-radius: var(--r-lg); font-size: .85rem; line-height: 1.5;
+  position: relative;
+}
+.msg-group.mine .msg-bubble {
+  background: var(--grad-aurora);
+  color: #fff; border-bottom-right-radius: 4px;
+  box-shadow: 0 4px 16px rgba(124,111,250,.25);
+}
+.msg-group.theirs .msg-bubble {
+  background: var(--bg-float); border: 1px solid var(--glass-border);
+  color: var(--ink-primary); border-bottom-left-radius: 4px;
+}
+.msg-name { font-size: .66rem; font-weight: 700; color: var(--violet-light); margin-bottom: 2px; }
+.msg-time { font-size: .62rem; opacity: .55; margin-top: 3px; text-align: right; }
+.chat-input-row { display: flex; gap: var(--sp-sm); }
+.chat-input {
+  flex: 1; background: var(--bg-raised); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); padding: 11px var(--sp-lg);
+  color: var(--ink-primary); font-family: 'Sora', sans-serif; font-size: .88rem;
+  outline: none; transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+.chat-input:focus { border-color: var(--violet); box-shadow: 0 0 0 3px var(--violet-dim); }
+.chat-input::placeholder { color: var(--ink-tertiary); }
+.chat-send {
+  width: 44px; height: 44px; border-radius: var(--r-full);
+  background: var(--grad-aurora); border: none; color: #fff;
+  cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow-violet); transition: all var(--dur-fast); flex-shrink: 0;
+}
+.chat-send:hover { transform: scale(1.08); box-shadow: 0 8px 24px rgba(124,111,250,.4); }
+
+/* ══════════════════════════════════════════
+   NOTES
+══════════════════════════════════════════ */
+.notes-masonry {
+  columns: 2; column-gap: var(--sp-md); margin-top: var(--sp-md);
+}
+@media(max-width: 500px) { .notes-masonry { columns: 1; } }
+.note-card {
+  background: var(--bg-raised); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); padding: var(--sp-md);
+  margin-bottom: var(--sp-md); break-inside: avoid;
+  transition: all var(--dur-fast); position: relative;
+  display: inline-block; width: 100%;
+}
+.note-card:hover { border-color: rgba(255,255,255,.12); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.note-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-sm); margin-bottom: var(--sp-sm); }
+.note-author-row { display: flex; align-items: center; gap: var(--sp-sm); }
+.note-author-name { font-size: .74rem; font-weight: 600; color: var(--violet-light); }
+.note-tag-pill { font-size: .63rem; font-weight: 700; padding: 2px 8px; border-radius: var(--r-full); background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(251,191,36,.25); }
+.note-title { font-size: .9rem; font-weight: 700; color: var(--ink-primary); margin-bottom: 5px; }
+.note-body { font-size: .78rem; color: var(--ink-secondary); line-height: 1.6; }
+.note-footer { display: flex; align-items: center; justify-content: space-between; margin-top: var(--sp-sm); }
+.note-time { font-size: .65rem; color: var(--ink-tertiary); }
+.note-del { background: transparent; border: none; color: var(--ink-ghost); cursor: pointer; padding: 3px 6px; border-radius: var(--r-sm); font-size: .8rem; transition: all var(--dur-fast); }
+.note-del:hover { color: var(--rose); background: var(--rose-dim); }
+
+/* ══════════════════════════════════════════
+   AI SECTION
+══════════════════════════════════════════ */
+.ai-locked-state {
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; padding: var(--sp-2xl) var(--sp-xl);
+  gap: var(--sp-md);
+}
+.ai-lock-icon {
+  width: 72px; height: 72px; border-radius: var(--r-2xl);
+  background: var(--bg-float); border: 1px solid var(--glass-border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem;
+  box-shadow: var(--shadow-md);
+}
+.ai-lock-title { font-family: 'DM Serif Display', serif; font-size: 1.2rem; color: var(--ink-primary); }
+.ai-lock-sub { font-size: .82rem; color: var(--ink-secondary); line-height: 1.65; max-width: 300px; }
+.btn-unlock {
+  background: var(--grad-aurora); color: #fff; border: none;
+  padding: 11px 28px; border-radius: var(--r-full);
+  cursor: pointer; font-family: 'Sora', sans-serif; font-weight: 600; font-size: .88rem;
+  box-shadow: var(--shadow-violet); transition: all var(--dur-fast);
+}
+.btn-unlock:hover { transform: translateY(-2px); box-shadow: 0 16px 48px rgba(124,111,250,.4); }
+
+.ai-conversation { display: flex; flex-direction: column; gap: var(--sp-sm); max-height: 380px; overflow-y: auto; margin-bottom: var(--sp-md); scrollbar-width: thin; scrollbar-color: var(--glass-border) transparent; }
+.ai-conversation::-webkit-scrollbar { width: 4px; }
+.ai-conversation::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
+
+.ai-quick-btns { display: flex; gap: var(--sp-sm); flex-wrap: wrap; margin-top: var(--sp-sm); }
+.ai-quick-btn {
+  padding: 7px 14px; border-radius: var(--r-full);
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+  color: var(--ink-secondary); cursor: pointer; font-size: .76rem; font-weight: 500;
+  font-family: 'Sora', sans-serif; transition: all var(--dur-fast);
+}
+.ai-quick-btn:hover { background: var(--violet-dim); border-color: var(--violet); color: var(--violet-light); }
+
+/* ══════════════════════════════════════════
+   UTILITIES
+══════════════════════════════════════════ */
+select.field-input { cursor: pointer; }
+input[type="date"].field-input::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
+</style>
+</head>
+<body>
+
+<!-- ══ AUTH MODAL ══ -->
+<div class="overlay" id="authModal">
+  <div class="modal">
+    <div class="modal-icon">📚</div>
+    <div class="modal-title">Moonlight</div>
+    <div class="modal-sub">Your premium study companion.<br/>Track progress, connect with friends.</div>
+    <div id="loginForm">
+      <div class="field-group">
+        <label class="field-label">Email</label>
+        <input class="field-input" id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Password</label>
+        <input class="field-input" id="loginPass" type="password" placeholder="••••••••"
+          onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <div class="modal-err" id="loginErr"></div>
+      <button class="btn btn-primary" onclick="doLogin()">Sign In →</button>
+      <div class="modal-divider"><hr/><span>or</span><hr/></div>
+      <button class="btn btn-ghost" onclick="showSignup()">Create an account</button>
+    </div>
+    <div id="signupForm" style="display:none;">
+      <div class="field-group">
+        <label class="field-label">Full Name</label>
+        <input class="field-input" id="signupName" type="text" placeholder="Your name"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Email</label>
+        <input class="field-input" id="signupEmail" type="email" placeholder="you@example.com"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Password</label>
+        <input class="field-input" id="signupPass" type="password" placeholder="Min. 6 characters"
+          onkeydown="if(event.key==='Enter')doSignup()"/>
+      </div>
+      <div class="modal-err" id="signupErr"></div>
+      <button class="btn btn-primary" onclick="doSignup()">Create Account →</button>
+      <div class="modal-divider"><hr/><span>or</span><hr/></div>
+      <button class="btn btn-ghost" onclick="showLogin()">Already have an account? Sign in</button>
+    </div>
+    <div class="modal-note">All data stored locally in your browser. No servers.</div>
+  </div>
+</div>
+
+<!-- ══ COOKIE MODAL ══ -->
+<div class="overlay hidden" id="cookieModal">
+  <div class="modal">
+    <div class="modal-icon">🔒</div>
+    <div class="modal-title">Your Privacy</div>
+    <div class="modal-sub">Choose how Moonlight stores data on this device.</div>
+    <div class="cookie-list">
+      <div class="cookie-row">
+        <div class="cookie-row-icon">🔐</div>
+        <div class="cookie-row-text">
+          <div class="cookie-row-title">Essential Storage</div>
+          <div class="cookie-row-desc">Login session, study data, chat, notes. Always on.</div>
+        </div>
+      </div>
+      <div class="cookie-row">
+        <div class="cookie-row-icon">✨</div>
+        <div class="cookie-row-text">
+          <div class="cookie-row-title">Optional — Remember API Key</div>
+          <div class="cookie-row-desc">Saves your Gemini key across sessions so you don't re-enter it.</div>
+        </div>
+      </div>
+      <div class="cookie-row">
+        <div class="cookie-row-icon">🚫</div>
+        <div class="cookie-row-text">
+          <div class="cookie-row-title">No Tracking or Ads</div>
+          <div class="cookie-row-desc">Zero analytics, no third-party data sharing, ever.</div>
+        </div>
+      </div>
+    </div>
+    <div class="cookie-btns">
+      <button class="btn-accept" onclick="acceptCookies()">Accept All</button>
+      <button class="btn-decline" onclick="declineCookies()">Essential Only</button>
+    </div>
+    <div class="cookie-fine">Choosing "Essential Only" means your AI key clears when you close this tab.</div>
+  </div>
+</div>
+
+<!-- ══ API KEY MODAL ══ -->
+<div class="overlay hidden" id="keyModal">
+  <div class="modal">
+    <div class="modal-icon">🤖</div>
+    <div class="modal-title">Connect Gemini AI</div>
+    <div style="text-align:center;margin-bottom:var(--sp-md)">
+      <span class="badge" id="keyBadge"></span>
+    </div>
+    <div class="modal-sub">
+      Power your AI study assistant with your own free Google Gemini key.
+      It goes directly to Google — never stored on any server.<br/><br/>
+      Get yours free at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Gemini API Key</label>
+      <input class="field-input mono" id="keyInput" type="password" placeholder="AIza…"
+        onkeydown="if(event.key==='Enter')saveApiKey()"/>
+    </div>
+    <div class="modal-err" id="keyErr"></div>
+    <button class="btn btn-primary" onclick="saveApiKey()">Connect & Activate →</button>
+    <span class="skip-link" onclick="closeKeyModal()">Not now — skip AI assistant</span>
+    <div class="modal-note" id="keyNote"></div>
+  </div>
+</div>
+
+<!-- ══ TOP NAV ══ -->
+<nav class="topnav" id="topnav" style="display:none;">
+  <span class="nav-brand">Moon<span>light</span></span>
+  <div class="nav-links">
+    <button class="nav-link active" onclick="showPage('dashboard',this)"><span class="nl-icon">📊</span> Dashboard</button>
+    <button class="nav-link" onclick="showPage('log',this)"><span class="nl-icon">⏱</span> Log</button>
+    <button class="nav-link" onclick="showPage('calendar',this)"><span class="nl-icon">📅</span> Calendar</button>
+    <button class="nav-link" onclick="showPage('chat',this)"><span class="nl-icon">💬</span> Chat</button>
+    <button class="nav-link" onclick="showPage('notes',this)"><span class="nl-icon">📝</span> Notes</button>
+    <button class="nav-link" onclick="showPage('ai',this)"><span class="nl-icon">🤖</span> AI</button>
+  </div>
+  <div class="nav-right">
+    <button class="nav-theme-btn" onclick="toggleTheme()" title="Toggle theme">☀️</button>
+    <div class="nav-avatar-btn">
+      <div class="avatar avatar-sm" id="navAvatar"></div>
+      <span class="nav-name" id="navName"></span>
+    </div>
+    <button class="nav-logout-btn" onclick="doLogout()">Sign out</button>
+  </div>
+</nav>
+
+<!-- ══ APP ══ -->
+<div id="appShell" style="display:none;">
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div class="page-eyebrow">Overview</div>
+        <h1 class="page-title" id="dashTitle">Good morning</h1>
+        <p class="page-sub">Here's how your studies are going.</p>
+      </div>
+
+      <div class="profile-hero" id="profileHero">
+        <div class="avatar avatar-xl" id="heroAvatar"></div>
+        <div class="profile-info">
+          <div class="profile-name" id="heroName"></div>
+          <div class="profile-meta" id="heroMeta"></div>
+          <div class="profile-streak" id="heroStreak">
+            <span class="streak-flame">🔥</span>
+            <span class="streak-count" id="streakCount">0</span>
+            <span class="streak-label">day streak</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <div class="card">
+        <div class="card-title">Study activity — last 7 days</div>
+        <div class="chart-container" id="chartBars"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Activity heatmap — last 28 days</div>
+        <div class="streak-heatmap" id="heatmap"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Recent sessions</div>
+        <div class="session-list" id="recentSessions"></div>
+      </div>
+    </div>
+
+    <!-- LOG SESSION -->
+    <div class="page" id="page-log">
+      <div class="page-header">
+        <div class="page-eyebrow">Track</div>
+        <h1 class="page-title">Log a Session</h1>
+        <p class="page-sub">Record what you studied, your goals, and progress.</p>
+      </div>
+      <div class="card">
+        <div class="form-grid">
+          <div class="field-group">
+            <label class="field-label">Subject</label>
+            <input class="field-input" id="logSubject" placeholder="e.g. Mathematics"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Duration (minutes)</label>
+            <input class="field-input" id="logDuration" type="number" placeholder="60" min="1"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Session Goal</label>
+            <input class="field-input" id="logGoal" placeholder="e.g. Complete Chapter 5"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Deadline</label>
+            <input class="field-input" id="logDeadline" type="date"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Score / Grade</label>
+            <input class="field-input" id="logScore" placeholder="e.g. 92% or A+"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Notes</label>
+            <textarea class="field-input" id="logNotes" placeholder="What did you cover? Challenges?"></textarea>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width:auto;margin-top:var(--sp-sm)" onclick="logSession()">Save Session ✓</button>
+      </div>
+      <div class="card">
+        <div class="card-title">All Sessions</div>
+        <div class="session-list" id="allSessions"></div>
+      </div>
+    </div>
+
+    <!-- CALENDAR -->
+    <div class="page" id="page-calendar">
+      <div class="page-header">
+        <div class="page-eyebrow">Schedule</div>
+        <h1 class="page-title">Calendar</h1>
+        <p class="page-sub">Green dots mark days you studied.</p>
+      </div>
+      <div class="card">
+        <div class="cal-nav">
+          <button class="cal-nav-btn" onclick="calPrev()">←</button>
+          <div class="cal-month" id="calLabel"></div>
+          <button class="cal-nav-btn" onclick="calNext()">→</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+      <div class="card" id="calDayCard" style="display:none;">
+        <div class="card-title" id="calDayTitle"></div>
+        <div class="session-list" id="calDaySessions"></div>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="page" id="page-chat">
+      <div class="page-header">
+        <div class="page-eyebrow">Friends</div>
+        <h1 class="page-title">Group Chat</h1>
+        <p class="page-sub">Study together. Messages saved locally.</p>
+      </div>
+      <div class="chat-shell">
+        <div class="chat-topbar">
+          <div class="room-tabs" id="roomTabs">
+            <button class="room-tab active" data-room="general" onclick="switchRoom('general',this)">💬 General</button>
+            <button class="room-tab" data-room="maths" onclick="switchRoom('maths',this)">📐 Maths</button>
+            <button class="room-tab" data-room="science" onclick="switchRoom('science',this)">🔬 Science</button>
+            <button class="room-tab" data-room="humanities" onclick="switchRoom('humanities',this)">📖 Humanities</button>
+          </div>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-row">
+          <input class="chat-input" id="chatInput" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendChat()"/>
+          <button class="chat-send" onclick="sendChat()">↑</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="page" id="page-notes">
+      <div class="page-header">
+        <div class="page-eyebrow">Collaborate</div>
+        <h1 class="page-title">Shared Notes</h1>
+        <p class="page-sub">Share resources and summaries with your friends.</p>
+      </div>
+      <div class="card">
+        <div class="form-grid">
+          <div class="field-group">
+            <label class="field-label">Title</label>
+            <input class="field-input" id="noteTitle" placeholder="e.g. Calculus formulas"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Subject tag</label>
+            <input class="field-input" id="noteTag" placeholder="e.g. Maths"/>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Content</label>
+          <textarea class="field-input" id="noteBody" placeholder="Write your note here…" style="min-height:90px;"></textarea>
+        </div>
+        <button class="btn btn-primary" style="width:auto" onclick="postNote()">Post Note →</button>
+      </div>
+      <div class="notes-masonry" id="notesGrid"></div>
+    </div>
+
+    <!-- AI -->
+    <div class="page" id="page-ai">
+      <div class="page-header">
+        <div class="page-eyebrow">Intelligence</div>
+        <h1 class="page-title">AI Study Assistant</h1>
+        <p class="page-sub">Powered by Google Gemini using your own API key.</p>
+      </div>
+      <div class="card">
+        <div class="ai-locked-state" id="aiLocked">
+          <div class="ai-lock-icon">🤖</div>
+          <div class="ai-lock-title">Connect Gemini AI</div>
+          <div class="ai-lock-sub">Your AI assistant knows your study history and helps you learn smarter — powered by your own free Gemini key.</div>
+          <button class="btn-unlock" onclick="showAiActive()">Open AI Assistant →</button>
+        </div>
+        <div id="aiActive" style="display:none;">
+          <div class="ai-conversation" id="aiConversation"></div>
+          <div style="display:flex;gap:var(--sp-sm);">
+            <input class="chat-input" id="aiInput" placeholder="Ask anything about your studies…" onkeydown="if(event.key==='Enter')askAI()"/>
+            <button class="chat-send" onclick="askAI()">↑</button>
+          </div>
+          <div class="ai-quick-btns">
+            <button class="ai-quick-btn" onclick="aiQuick('Summarise my study progress this week')">📊 My progress</button>
+            <button class="ai-quick-btn" onclick="aiQuick('What subject should I focus on next?')">🎯 Focus next</button>
+            <button class="ai-quick-btn" onclick="aiQuick('Give me a study tip for staying focused')">💡 Study tip</button>
+            <button class="ai-quick-btn" onclick="aiQuick('Create a quick quiz for my most studied subject')">📝 Quiz me</button>
+            
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ MOBILE BOTTOM NAV ══ -->
+<nav class="bottom-nav" id="bottomNav" style="display:none;">
+  <button class="bottom-nav-item active" onclick="showPage('dashboard',this)"><span class="bn-icon">📊</span><span class="bn-label">Home</span></button>
+  <button class="bottom-nav-item" onclick="showPage('log',this)"><span class="bn-icon">⏱</span><span class="bn-label">Log</span></button>
+  <button class="bottom-nav-item" onclick="showPage('calendar',this)"><span class="bn-icon">📅</span><span class="bn-label">Calendar</span></button>
+  <button class="bottom-nav-item" onclick="showPage('chat',this)"><span class="bn-icon">💬</span><span class="bn-label">Chat</span></button>
+  <button class="bottom-nav-item" onclick="showPage('notes',this)"><span class="bn-icon">📝</span><span class="bn-label">Notes</span></button>
+  <button class="bottom-nav-item" onclick="showPage('ai',this)"><span class="bn-icon">🤖</span><span class="bn-label">AI</span></button>
+</nav>
+
+<script>
+// ═══════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════
+const K={USERS:'mlt2_users',SESSION:'mlt2_session',CONSENT:'mlt2_consent',APIKEY:'mlt2_apikey',SESSIONS:'mlt2_study',CHAT:'mlt2_chat',NOTES:'mlt2_notes',THEME:'mlt2_theme'};
+let cookiesAccepted=false, currentRoom='general';
+function db(k){try{return JSON.parse(localStorage.getItem(k)||'null');}catch{return null;}}
+function dbSet(k,v){localStorage.setItem(k,JSON.stringify(v));}
+function getUsers(){return db(K.USERS)||{};}
+function saveUsers(u){dbSet(K.USERS,u);}
+function getSession(){return sessionStorage.getItem(K.SESSION)||localStorage.getItem(K.SESSION)||'';}
+function setSession(e,p){sessionStorage.setItem(K.SESSION,e);if(p)localStorage.setItem(K.SESSION,e);}
+function clearSession(){localStorage.removeItem(K.SESSION);sessionStorage.removeItem(K.SESSION);}
+function curEmail(){return getSession();}
+function curUser(){const e=getSession();return getUsers()[e]||null;}
+function consentKey(e){return K.CONSENT+'_'+e;}
+function getUserConsent(e){return localStorage.getItem(consentKey(e));}
+function setUserConsent(e,v){localStorage.setItem(consentKey(e),v);}
+function apiKeyForUser(e){return localStorage.getItem(K.APIKEY+'_'+e)||sessionStorage.getItem(K.APIKEY+'_'+e)||'';}
+function saveApiKeyForUser(e,k){sessionStorage.setItem(K.APIKEY+'_'+e,k);if(cookiesAccepted)localStorage.setItem(K.APIKEY+'_'+e,k);}
+function clearApiKeyForUser(e){localStorage.removeItem(K.APIKEY+'_'+e);sessionStorage.removeItem(K.APIKEY+'_'+e);}
+function getSessions(){return db(K.SESSIONS)||[];}
+function saveSessions(s){dbSet(K.SESSIONS,s);}
+function getChats(){return db(K.CHAT)||{};}
+function saveChats(c){dbSet(K.CHAT,c);}
+function getNotes(){return db(K.NOTES)||[];}
+function saveNotes(n){dbSet(K.NOTES,n);}
+
+// ═══════════════════════════════════════
+// AVATAR GENERATOR
+// ═══════════════════════════════════════
+const AVATAR_GRADIENTS=[
+  ['#7c6ffa','#c084fc'],['#06b6d4','#6366f1'],['#10b981','#3b82f6'],
+  ['#f59e0b','#ef4444'],['#ec4899','#8b5cf6'],['#14b8a6','#f97316'],
+  ['#6366f1','#06b6d4'],['#a855f7','#ec4899']
+];
+function getAvatarGradient(name){
+  let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))%AVATAR_GRADIENTS.length;
+  return AVATAR_GRADIENTS[h];
+}
+function setAvatar(el,name){
+  if(!el||!name)return;
+  const initials=name.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2);
+  const [c1,c2]=getAvatarGradient(name);
+  el.style.background=`linear-gradient(135deg, ${c1}, ${c2})`;
+  el.style.boxShadow=`0 4px 16px ${c1}44`;
+  el.textContent=initials;
+}
+
+// ═══════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════
+function toggleTheme(){
+  const cur=document.documentElement.getAttribute('data-theme');
+  const next=cur==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  localStorage.setItem(K.THEME,next);
+  document.querySelector('.nav-theme-btn').textContent=next==='dark'?'☀️':'🌙';
+}
+function initTheme(){
+  const saved=localStorage.getItem(K.THEME)||'dark';
+  document.documentElement.setAttribute('data-theme',saved);
+  const btn=document.querySelector('.nav-theme-btn');
+  if(btn)btn.textContent=saved==='dark'?'☀️':'🌙';
+}
+
+// ═══════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════
+function showLogin(){document.getElementById('loginForm').style.display='';document.getElementById('signupForm').style.display='none';}
+function showSignup(){document.getElementById('loginForm').style.display='none';document.getElementById('signupForm').style.display='';}
+function showErr(id,msg){const e=document.getElementById(id);e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),4000);}
+function simpleHash(s){let h=0x811c9dc5;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(h*0x01000193)>>>0;}return h.toString(16);}
+
+function doSignup(){
+  const name=document.getElementById('signupName').value.trim();
+  const email=document.getElementById('signupEmail').value.trim().toLowerCase();
+  const pass=document.getElementById('signupPass').value;
+  if(!name)return showErr('signupErr','Please enter your name.');
+  if(!email.includes('@'))return showErr('signupErr','Invalid email address.');
+  if(pass.length<6)return showErr('signupErr','Password needs at least 6 characters.');
+  const users=getUsers();
+  if(users[email])return showErr('signupErr','An account with this email already exists.');
+  users[email]={name,email,passHash:simpleHash(pass),joined:Date.now()};
+  saveUsers(users);setSession(email,false);afterLogin(email);
+}
+function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pass=document.getElementById('loginPass').value;
+  if(!email||!pass)return showErr('loginErr','Please fill in both fields.');
+  const u=getUsers()[email];
+  if(!u||u.passHash!==simpleHash(pass))return showErr('loginErr','Incorrect email or password.');
+  setSession(email,true);afterLogin(email);
+}
+function doLogout(){clearSession();cookiesAccepted=false;location.reload();}
+
+function afterLogin(email){
+  const user=getUsers()[email];
+  // Show nav & app
+  document.getElementById('topnav').style.display='flex';
+  document.getElementById('bottomNav').style.display='grid';
+  document.getElementById('appShell').style.display='block';
+  document.getElementById('authModal').classList.add('hidden');
+  // Set avatar
+  setAvatar(document.getElementById('navAvatar'),user.name);
+  document.getElementById('navName').textContent=user.name.split(' ')[0];
+  const consent=getUserConsent(email);
+  if(!consent){document.getElementById('cookieModal').classList.remove('hidden');}
+  else{cookiesAccepted=(consent==='accepted');initApp();}
+}
+
+// ═══════════════════════════════════════
+// COOKIES
+// ═══════════════════════════════════════
+function acceptCookies(){const e=curEmail();cookiesAccepted=true;setUserConsent(e,'accepted');setSession(e,true);document.getElementById('cookieModal').classList.add('hidden');initApp();}
+function declineCookies(){const e=curEmail();cookiesAccepted=false;setUserConsent(e,'declined');localStorage.removeItem(K.APIKEY+'_'+e);document.getElementById('cookieModal').classList.add('hidden');initApp();}
+
+// ═══════════════════════════════════════
+// API KEY
+// ═══════════════════════════════════════
+function updateKeyBadge(){
+  const b=document.getElementById('keyBadge'),n=document.getElementById('keyNote');
+  if(cookiesAccepted){b.className='badge badge-green';b.textContent='✓ Key remembered across visits';n.textContent='Cookie preference: All — key persists in this browser.';}
+  else{b.className='badge badge-amber';b.textContent='⚠ Session only — clears on tab close';n.textContent='Cookie preference: Essential only — key clears when tab closes.';}
+}
+function openKeyModal(){updateKeyBadge();document.getElementById('keyInput').value='';document.getElementById('keyErr').classList.remove('show');document.getElementById('keyModal').classList.remove('hidden');}
+function closeKeyModal(){document.getElementById('keyModal').classList.add('hidden');}
+function saveApiKey(){
+  const val=document.getElementById('keyInput').value.trim();
+  if(!val){document.getElementById('keyErr').textContent='Please paste your API key.';document.getElementById('keyErr').classList.add('show');return;}
+  if(!val.startsWith('AIza')){document.getElementById('keyErr').textContent="Gemini keys start with 'AIza…'";document.getElementById('keyErr').classList.add('show');return;}
+  saveApiKeyForUser(curEmail(),val);
+  closeKeyModal();showAiActive();
+}
+function showAiActive(){document.getElementById('aiLocked').style.display='none';document.getElementById('aiActive').style.display='block';}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+function initApp(){
+  renderDashboard();renderAllSessions();renderCalendar();renderChat();renderNotes();
+  showAiActive(); // Key lives in Vercel env — always show AI active
+}
+
+// ═══════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════
+function showPage(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-link,.bottom-nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  // Activate matching nav links
+  document.querySelectorAll('.nav-link,.bottom-nav-item').forEach(b=>{
+    if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+name+"'"))b.classList.add('active');
+  });
+  if(name==='dashboard')renderDashboard();
+  if(name==='log')renderAllSessions();
+  if(name==='calendar')renderCalendar();
+  if(name==='chat')renderChat();
+  if(name==='notes')renderNotes();
+}
+
+// ═══════════════════════════════════════
+// STREAK CALCULATOR
+// ═══════════════════════════════════════
+function calcStreak(sessions){
+  if(!sessions.length)return 0;
+  const days=new Set(sessions.map(s=>new Date(s.ts).toDateString()));
+  let streak=0;const today=new Date();
+  for(let i=0;i<365;i++){
+    const d=new Date(today);d.setDate(d.getDate()-i);
+    if(days.has(d.toDateString()))streak++;
+    else if(i>0)break;
+  }
+  return streak;
+}
+
+// ═══════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════
+function renderDashboard(){
+  const user=curUser();if(!user)return;
+  const sessions=getSessions();
+  const mine=sessions.filter(s=>s.email===curEmail());
+  const now=new Date();const hr=now.getHours();
+  
+  
+  document.getElementById('dashTitle').textContent=(hr<12?'Good morning':hr<17?'Good afternoon':'Good evening')+', '+user.name.split(' ')[0]+'!';
+
+  setAvatar(document.getElementById('heroAvatar'),user.name);
+  document.getElementById('heroName').textContent=user.name;
+  document.getElementById('heroMeta').textContent=`Joined ${new Date(user.joined||Date.now()).toLocaleDateString('en-US',{month:'long',year:'numeric'})} · ${mine.length} sessions logged`;
+
+  const streak=calcStreak(mine);
+  document.getElementById('streakCount').textContent=streak;
+
+  const weekAgo=Date.now()-7*86400000;
+  const thisWeek=mine.filter(s=>s.ts>=weekAgo);
+  const totalMins=mine.reduce((a,s)=>a+s.duration,0);
+  const weekMins=thisWeek.reduce((a,s)=>a+s.duration,0);
+  const subjects=[...new Set(mine.map(s=>s.subject))];
+
+  document.getElementById('statsGrid').innerHTML=`
+    <div class="stat-card"><div class="stat-card-accent" style="background:var(--grad-aurora)"></div><div class="stat-icon">📚</div><div class="stat-num">${mine.length}</div><div class="stat-label">Total sessions</div></div>
+    <div class="stat-card"><div class="stat-card-accent" style="background:var(--grad-emerald)"></div><div class="stat-icon">⏱</div><div class="stat-num">${Math.round(totalMins/60*10)/10}h</div><div class="stat-label">Total hours</div></div>
+    <div class="stat-card"><div class="stat-card-accent" style="background:linear-gradient(135deg,#f59e0b,#ef4444)"></div><div class="stat-icon">🔥</div><div class="stat-num">${Math.round(weekMins/60*10)/10}h</div><div class="stat-label">This week</div><div class="stat-delta" style="color:var(--emerald)">Last 7 days</div></div>
+    <div class="stat-card"><div class="stat-card-accent" style="background:linear-gradient(135deg,#60a5fa,#34d399)"></div><div class="stat-icon">🎯</div><div class="stat-num">${subjects.length}</div><div class="stat-label">Subjects</div></div>`;
+
+  // Bar chart
+  const bars=document.getElementById('chartBars');bars.innerHTML='';
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dayData=Array.from({length:7},(_,i)=>{
+    const d=new Date(now);d.setDate(d.getDate()-(6-i));
+    const mins=mine.filter(s=>new Date(s.ts).toDateString()===d.toDateString()).reduce((a,s)=>a+s.duration,0);
+    return{label:days[d.getDay()],mins,isToday:d.toDateString()===now.toDateString()};
+  });
+  const maxMins=Math.max(...dayData.map(d=>d.mins),60);
+  dayData.forEach(d=>{
+    const pct=Math.round((d.mins/maxMins)*85);
+    bars.innerHTML+=`<div class="chart-col">
+      <div class="chart-bar-val">${d.mins?Math.round(d.mins/60*10)/10+'h':''}</div>
+      <div class="chart-bar-wrap"><div class="chart-bar" style="height:${d.mins?pct:4}px;background:${d.isToday?'var(--grad-aurora)':'rgba(124,111,250,0.45)'};"></div></div>
+      <div class="chart-bar-label">${d.label}</div>
+    </div>`;
+  });
+
+  // Heatmap — 28 days
+  const hm=document.getElementById('heatmap');hm.innerHTML='';
+  for(let i=27;i>=0;i--){
+    const d=new Date(now);d.setDate(d.getDate()-i);
+    const mins=mine.filter(s=>new Date(s.ts).toDateString()===d.toDateString()).reduce((a,s)=>a+s.duration,0);
+    const level=mins===0?0:mins<30?1:mins<60?2:mins<120?3:4;
+    hm.innerHTML+=`<div class="heat-cell level-${level}" title="${d.toDateString()}: ${Math.round(mins/60*10)/10}h"></div>`;
+  }
+
+  // Recent sessions
+  const recent=mine.slice(-4).reverse();
+  document.getElementById('recentSessions').innerHTML=recent.length?recent.map(s=>sessionHTML(s,false)).join(''):`<div class="empty-state"><div class="empty-icon">📚</div>No sessions yet.<br/>Log your first session to get started.</div>`;
+}
+
+// ═══════════════════════════════════════
+// SESSIONS
+// ═══════════════════════════════════════
+const SUBJECT_COLORS=['#7c6ffa','#10b981','#f59e0b','#60a5fa','#ec4899','#06b6d4'];
+function subjectColor(subject){let h=0;for(let i=0;i<subject.length;i++)h=(h*31+subject.charCodeAt(i))%SUBJECT_COLORS.length;return SUBJECT_COLORS[h];}
+function sessionHTML(s,showDel=true){
+  const c=subjectColor(s.subject);
+  const initials=s.subject.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  return`<div class="session-item">
+    <div class="session-dot" style="background:linear-gradient(135deg,${c},${c}99)">${initials}</div>
+    <div class="session-body">
+      <div class="session-subject">${esc(s.subject)}</div>
+      <div class="session-meta">${new Date(s.ts).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})} · ${s.duration} min${s.score?' · '+esc(s.score):''}${s.deadline?' · Due '+s.deadline:''}</div>
+      ${s.goal?`<div class="session-meta" style="color:var(--emerald)">🎯 ${esc(s.goal)}</div>`:''}
+      ${s.notes?`<div class="session-meta" style="margin-top:3px;font-style:italic">${esc(s.notes)}</div>`:''}
+      <div class="session-tags">
+        <span class="pill pill-violet">${esc(s.subject)}</span>
+        ${s.goal?'<span class="pill pill-emerald">Goal set</span>':''}
+        ${s.deadline?'<span class="pill pill-amber">Deadline</span>':''}
+        ${s.score?'<span class="pill pill-sky">Scored</span>':''}
+      </div>
+    </div>
+    ${showDel?`<button class="session-del" onclick="deleteSession('${s.id}')">✕</button>`:''}
+  </div>`;
+}
+
+function logSession(){
+  const subject=document.getElementById('logSubject').value.trim();
+  const duration=parseInt(document.getElementById('logDuration').value)||0;
+  if(!subject)return alert('Please enter a subject.');
+  if(!duration||duration<1)return alert('Please enter a valid duration.');
+  const s={id:Date.now()+'_'+Math.random().toString(36).slice(2),email:curEmail(),subject,duration,
+    goal:document.getElementById('logGoal').value.trim(),deadline:document.getElementById('logDeadline').value,
+    score:document.getElementById('logScore').value.trim(),notes:document.getElementById('logNotes').value.trim(),ts:Date.now()};
+  const sessions=getSessions();sessions.push(s);saveSessions(sessions);
+  ['logSubject','logDuration','logGoal','logDeadline','logScore','logNotes'].forEach(id=>document.getElementById(id).value='');
+  renderAllSessions();renderDashboard();renderCalendar();
+}
+function deleteSession(id){if(!confirm('Delete this session?'))return;saveSessions(getSessions().filter(s=>s.id!==id));renderAllSessions();renderDashboard();renderCalendar();}
+function renderAllSessions(){const mine=getSessions().filter(s=>s.email===curEmail()).reverse();document.getElementById('allSessions').innerHTML=mine.length?mine.map(s=>sessionHTML(s,true)).join(''):'<div class="empty-state"><div class="empty-icon">⏱</div>No sessions yet.</div>';}
+
+// ═══════════════════════════════════════
+// CALENDAR
+// ═══════════════════════════════════════
+let calYear=new Date().getFullYear(),calMonth=new Date().getMonth();
+function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCalendar();}
+function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCalendar();}
+function renderCalendar(){
+  const mine=getSessions().filter(s=>s.email===curEmail());
+  const sessionDates=new Set(mine.map(s=>new Date(s.ts).toDateString()));
+  document.getElementById('calLabel').textContent=new Date(calYear,calMonth,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const grid=document.getElementById('calGrid');grid.innerHTML='';
+  ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(d=>{const el=document.createElement('div');el.className='cal-hdr';el.textContent=d;grid.appendChild(el);});
+  const first=new Date(calYear,calMonth,1),last=new Date(calYear,calMonth+1,0).getDate(),today=new Date();
+  for(let i=0;i<first.getDay();i++)grid.appendChild(document.createElement('div'));
+  for(let d=1;d<=last;d++){
+    const dt=new Date(calYear,calMonth,d);
+    const el=document.createElement('div');el.className='cal-day';el.textContent=d;
+    if(dt.toDateString()===today.toDateString())el.classList.add('today');
+    if(sessionDates.has(dt.toDateString()))el.classList.add('has-session');
+    el.onclick=()=>showCalDay(dt,mine);
+    grid.appendChild(el);
+  }
+}
+function showCalDay(dt,sessions){
+  const card=document.getElementById('calDayCard');
+  const daySessions=sessions.filter(s=>new Date(s.ts).toDateString()===dt.toDateString());
+  document.getElementById('calDayTitle').textContent=dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  document.getElementById('calDaySessions').innerHTML=daySessions.length?daySessions.map(s=>sessionHTML(s,false)).join(''):'<div class="empty-state"><div class="empty-icon">📅</div>No sessions on this day.</div>';
+  card.style.display='block';card.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ═══════════════════════════════════════
+// CHAT
+// ═══════════════════════════════════════
+function switchRoom(room,btn){currentRoom=room;document.querySelectorAll('.room-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderChat();}
+function renderChat(){
+  const chats=getChats();const msgs=(chats[currentRoom]||[]).slice(-80);
+  const me=curEmail();const el=document.getElementById('chatMessages');
+  el.innerHTML=msgs.length?msgs.map(m=>{
+    const isMine=m.email===me;
+    return`<div class="msg-group ${isMine?'mine':'theirs'}">
+      ${!isMine?`<div class="avatar avatar-sm" style="background:linear-gradient(135deg,${getAvatarGradient(m.name).join(',')});color:#fff;font-size:.65rem;font-weight:700;box-shadow:none">${m.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div>`:''}
+      <div class="msg-bubble">
+        ${!isMine?`<div class="msg-name">${esc(m.name)}</div>`:''}
+        ${esc(m.text)}
+        <div class="msg-time">${new Date(m.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+    </div>`;
+  }).join(''):`<div class="empty-state" style="flex:1"><div class="empty-icon">💬</div>No messages yet in this room.</div>`;
+  el.scrollTop=el.scrollHeight;
+}
+function sendChat(){
+  const input=document.getElementById('chatInput');const text=input.value.trim();if(!text)return;
+  const user=curUser();const chats=getChats();
+  if(!chats[currentRoom])chats[currentRoom]=[];
+  chats[currentRoom].push({email:curEmail(),name:user.name,text,ts:Date.now()});
+  saveChats(chats);input.value='';renderChat();
+}
+
+// ═══════════════════════════════════════
+// NOTES
+// ═══════════════════════════════════════
+function renderNotes(){
+  const notes=getNotes().slice().reverse();const me=curEmail();
+  document.getElementById('notesGrid').innerHTML=notes.length?notes.map(n=>`
+    <div class="note-card">
+      <div class="note-card-top">
+        <div class="note-author-row">
+          <div class="avatar avatar-sm" style="background:linear-gradient(135deg,${getAvatarGradient(n.name).join(',')});color:#fff;font-size:.62rem;font-weight:700;box-shadow:none">${n.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div>
+          <div class="note-author-name">${esc(n.name)}</div>
+        </div>
+        ${n.tag?`<span class="note-tag-pill">${esc(n.tag)}</span>`:''}
+      </div>
+      <div class="note-title">${esc(n.title)}</div>
+      <div class="note-body">${esc(n.body)}</div>
+      <div class="note-footer">
+        <div class="note-time">${new Date(n.ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+        ${n.email===me?`<button class="note-del" onclick="deleteNote('${n.id}')">✕</button>`:''}
+      </div>
+    </div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📝</div>No notes yet. Post the first one!</div>`;
+}
+function postNote(){
+  const title=document.getElementById('noteTitle').value.trim();const body=document.getElementById('noteBody').value.trim();
+  if(!title||!body)return alert('Please enter a title and content.');
+  const user=curUser();const notes=getNotes();
+  notes.push({id:Date.now()+'_'+Math.random().toString(36).slice(2),email:curEmail(),name:user.name,title,body,tag:document.getElementById('noteTag').value.trim(),ts:Date.now()});
+  saveNotes(notes);['noteTitle','noteTag','noteBody'].forEach(id=>document.getElementById(id).value='');renderNotes();
+}
+function deleteNote(id){if(!confirm('Delete this note?'))return;saveNotes(getNotes().filter(n=>n.id!==id));renderNotes();}
+
+// ═══════════════════════════════════════
+// AI
+// ═══════════════════════════════════════
+let aiHistory=[];
+
+function buildAIContext(){
+  const sessions=getSessions().filter(s=>s.email===curEmail());
+  const subjects=[...new Set(sessions.map(s=>s.subject))];
+  const totalMins=sessions.reduce((a,s)=>a+s.duration,0);
+  const weekSessions=sessions.filter(s=>s.ts>=Date.now()-7*86400000);
+  const streak=calcStreak(sessions);
+  return `You are a supportive, smart AI study assistant inside an app called Moonlight Tracker. `
+    +`The user's name is ${curUser()?.name||'Student'}. `
+    +`Their study stats: ${sessions.length} total sessions, ${Math.round(totalMins/60*10)/10} total hours, `
+    +`${streak}-day streak, ${weekSessions.length} sessions this week. `
+    +`Subjects studied: ${subjects.join(', ')||'none yet'}. `
+    +`Recent sessions: ${sessions.slice(-3).map(s=>`${s.subject} (${s.duration}min${s.goal?', goal: '+s.goal:''})`).join('; ')||'none'}. `
+    +`Be encouraging, concise, and practical.`;
+}
+
+// Build contents array — context injected as opening exchange so it works with v1beta REST API
+function buildContents(userText){
+  const ctx=buildAIContext();
+  // Prepend a priming exchange so the model knows its role (system_instruction not supported in REST v1beta)
+  const primer=[
+    {role:'user',parts:[{text:'Who are you and what can you help me with?'}]},
+    {role:'model',parts:[{text:ctx+' How can I help you today?'}]}
+  ];
+  // Add conversation history
+  const history=aiHistory.map(m=>({role:m.role,parts:[{text:m.text}]}));
+  // Add the new user message
+  return [...primer,...history,{role:'user',parts:[{text:userText}]}];
+}
+
+async function askAI(){
+  const input=document.getElementById('aiInput');
+  const text=input.value.trim();
+  if(!text)return;
+  input.value='';
+  await sendAiMsg(text);
+}
+
+function aiQuick(text){sendAiMsg(text);}
+
+async function sendAiMsg(text){
+  // Render user message immediately
+  appendAiMsg(text,'user');
+  const {textNode,bubble}=appendAiMsg('Thinking…','model',true);
+  aiHistory.push({role:'user',text});
+  try{
+    // Call Vercel proxy — key stays on server, never touches the browser
+    const resp=await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:aiHistory, context:buildAIContext()})
+    });
+    const data=await resp.json();
+    if(!resp.ok||data.error)throw new Error(data.error||'Request failed');
+    const reply=data.reply||'No response.';
+    aiHistory.push({role:'model',text:reply});
+    textNode.textContent=reply;
+    bubble.classList.remove('loading');
+  }catch(err){
+    aiHistory.pop();
+    textNode.textContent='Error: '+err.message;
+    bubble.classList.remove('loading');
+  }
+}
+
+// Returns {textNode, bubble} so caller can update the placeholder text safely
+function appendAiMsg(text,role,loading=false){
+  const conv=document.getElementById('aiConversation');
+  const isMine=role==='user';
+  const wrap=document.createElement('div');
+  wrap.className=`msg-group ${isMine?'mine':'theirs'}`;
+
+  if(!isMine){
+    const av=document.createElement('div');
+    av.className='avatar avatar-sm';
+    av.style.cssText='background:var(--grad-aurora);color:#fff;font-size:.65rem;font-weight:700;flex-shrink:0';
+    av.textContent='AI';
+    wrap.appendChild(av);
+  }
+
+  const bubble=document.createElement('div');
+  bubble.className='msg-bubble';
+  if(loading)bubble.classList.add('loading');
+
+  // Name label for AI messages
+  if(!isMine){
+    const nameEl=document.createElement('div');
+    nameEl.className='msg-name';
+    nameEl.textContent='Gemini AI';
+    bubble.appendChild(nameEl);
+  }
+
+  // Text node — kept as a separate element so we can update it without wiping the name label
+  const textEl=document.createElement('div');
+  textEl.style.whiteSpace='pre-wrap';
+  textEl.textContent=text;
+  bubble.appendChild(textEl);
+
+  wrap.appendChild(bubble);
+  conv.appendChild(wrap);
+  conv.scrollTop=conv.scrollHeight;
+
+  // Return both the text element and the bubble for external updates
+  return {textNode:textEl, bubble};
+}
+
+// ═══════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════
+function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+// ═══════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  initTheme();
+  const email=getSession();
+  if(email&&getUsers()[email]){afterLogin(email);}
+});
+</script>
+</body>
+</html>
